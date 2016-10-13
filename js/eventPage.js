@@ -1,13 +1,13 @@
 var db;
 var recordStat = false;
-var curNote = 'test';
+var curNotebook = 'test';
 var req = window.indexedDB.open('HWNote');
 
-function newNote(e){
+function newNotebook(e){
     console.log("upgraded needed");
 
     db = e.target.result;
-    var objStore = db.createObjectStore(curNote, { keyPath : "id", autoIncrement : true});
+    var objStore = db.createObjectStore(curNotebook, { keyPath : "id", autoIncrement : true});
 
     objStore.createIndex("title", "title", { unique : false });
     objStore.createIndex("url", "url", { unique : false });
@@ -27,7 +27,7 @@ req.onsuccess = function(e){
     console.log("success");
     db = req.result;
 }
-req.onupgradeneeded = newNote;
+req.onupgradeneeded = newNotebook;
 
 // collect site information
 function checkSearchEngine(url, domain){
@@ -72,7 +72,7 @@ function collectData(id, info, tab){
                             keyword : keyword
                         };
 
-                        db.transaction([curNote], "readwrite").objectStore(curNote).add(Site);
+                        db.transaction([curNotebook], "readwrite").objectStore(curNotebook).add(Site);
 
                         console.log("Recorded : ", tab.title);
                         if(keyword)
@@ -101,16 +101,28 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
         case 'getRecordStat':
             console.log("Message Received : getRecordStat");
 
-            sendResponse(recordStat);
+            var response = {
+                recordStat : recordStat,
+                curNotebook : curNotebook,
+                notebookList : Array.from(req.result.objectStoreNames)
+            };
+
+            sendResponse(response);
             break;
 
-        case 'newNote':
-            console.log("New note! : ", request.content);
+        case 'newNotebook':
+            console.log("New notebook! : ", request.content);
 
-            curNote = request.content;
+            curNotebook = request.content;
 
             db.close();
             req = window.indexedDB.open('HWNote', req.result.version + 1);
-            req.onupgradeneeded = newNote;
+            req.onupgradeneeded = newNotebook;
+            break;
+
+        case 'changeNotebook':
+            console.log("change notebook : ", request.content);
+            curNotebook = request.content;
+            break;
     }
 });
