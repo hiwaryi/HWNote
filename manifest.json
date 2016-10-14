@@ -5,7 +5,7 @@
   "version": "1.0",
 
   "permissions": [
-    "tabs", "<all_urls>"
+    "tabs", "<all_urls>", "sessions"
   ],
   "browser_action": {
     "default_icon": "icon.png",
@@ -15,6 +15,5 @@
   "background": {
     "scripts": ["js/eventPage.js"],
     "persistent": false
-  },
-  "options_page": "options.html"
+  }
 }

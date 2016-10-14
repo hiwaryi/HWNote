@@ -2,6 +2,7 @@ var recordButton = document.getElementsByClassName('record')[0];
 var addNotebookButton = document.getElementsByClassName('addNotebook')[0];
 var notebooksDiv = document.getElementsByClassName('notebooks')[0];
 var notesDiv = document.getElementsByClassName('notes')[0];
+var detailDiv = document.getElementsByClassName('detail')[0];
 var recordStat;
 var curNotebook;
 
@@ -96,6 +97,10 @@ notebooksDiv.addEventListener('click', function(e){
         boldCurNotebook();
     }
 });
+
+detailDiv.addEventListener('click', function(e){
+    chrome.tabs.create({ 'url' : chrome.extension.getURL('detail.html')});
+})
 
 
 //

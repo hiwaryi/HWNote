@@ -2,6 +2,7 @@ var db;
 var recordStat = false;
 var curNotebook = 'test';
 var req = window.indexedDB.open('HWNote');
+var keywords = new Object();
 
 function newNotebook(e){
     console.log("upgraded needed");
@@ -35,7 +36,7 @@ function checkSearchEngine(url, domain){
 
     if(searchEngine.has(domain)){
         var query = searchEngine.get(domain);
-        return url.split(query)[1].split(/[\/?:#&]/)[0];
+        return "검색어 : " + url.split(query)[1].split(/[\/?:#&]/)[0];
     }
     return null;
 }
@@ -60,7 +61,11 @@ function collectData(id, info, tab){
             chrome.tabs.executeScript(tab.id, { file : "js/parseContent.js" }, function(){
                 chrome.tabs.sendMessage(tab.id, { type : 'getContent' }, function(content){
                     chrome.tabs.captureVisibleTab(function(thumbnail){
-                        var keyword = checkSearchEngine(tab.url, domain);
+                        var keyword;
+                        if(tab.openerTabId in keywords){
+                            keyword = JSON.parse(JSON.stringify(keywords[tab.openerTabId]));
+                        }
+
                         var Site = {
                             title : tab.title,
                             url : tab.url,
@@ -71,6 +76,20 @@ function collectData(id, info, tab){
                             thumbnail : thumbnail,
                             keyword : keyword
                         };
+
+                        if(!keyword){
+                            if(keyword = checkSearchEngine(tab.url, domain)){
+                                keyword = [keyword];
+                            }
+                            else{
+                                keyword = [tab.title];
+                            }
+                        }
+                        else{
+                            keyword.push(tab.title);
+                        }
+
+                        keywords[tab.id] = keyword;
 
                         db.transaction([curNotebook], "readwrite").objectStore(curNotebook).add(Site);
 
@@ -83,6 +102,12 @@ function collectData(id, info, tab){
         }
     }
 }
+
+chrome.tabs.onRemoved.addListener(function(id){
+    if(id in keywords){
+        delete keywords[id];
+    }
+});
 
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
     switch(request.type){
@@ -121,14 +146,14 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
 
         case 'getNotes':
             var index = db.transaction([curNotebook]).objectStore(curNotebook).index('time');
-            var i = 0;
-            var notes = []
+            var idx = 0;
+            var notes = [];
 
-            index.openCursor(null, IDBCursor.prev).onsuccess = function(e){
+            index.openCursor().onsuccess = function(e){
                 var cursor = e.target.result;
-                i++;
+                idx++;
 
-                if(cursor && i <= 10){
+                if(cursor && idx <= 10){
                     notes.push(cursor.value.title);
                     cursor.continue();
                 }
@@ -145,6 +170,10 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
             };
 
             sendResponse(response);
+            break;
+
+        case 'getCurNotebook':
+            sendResponse(curNotebook);
             break;
     }
 });
