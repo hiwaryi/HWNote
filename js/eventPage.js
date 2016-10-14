@@ -101,13 +101,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
         case 'getRecordStat':
             console.log("Message Received : getRecordStat");
 
-            var response = {
-                recordStat : recordStat,
-                curNotebook : curNotebook,
-                notebookList : Array.from(req.result.objectStoreNames)
-            };
-
-            sendResponse(response);
+            sendResponse(recordStat);
             break;
 
         case 'newNotebook':
@@ -123,6 +117,34 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
         case 'changeNotebook':
             console.log("change notebook : ", request.content);
             curNotebook = request.content;
+            break;
+
+        case 'getNotes':
+            var index = db.transaction([curNotebook]).objectStore(curNotebook).index('time');
+            var i = 0;
+            var notes = []
+
+            index.openCursor(null, IDBCursor.prev).onsuccess = function(e){
+                var cursor = e.target.result;
+                i++;
+
+                if(cursor && i <= 10){
+                    notes.push(cursor.value.title);
+                    cursor.continue();
+                }
+                else{
+                    chrome.runtime.sendMessage({ type : 'sendNotes', content : notes });
+                }
+            };
+            break;
+
+        case 'getNotebookList':
+            var response = {
+                notebookList : Array.from(req.result.objectStoreNames),
+                curNotebook : curNotebook
+            };
+
+            sendResponse(response);
             break;
     }
 });
