@@ -92,7 +92,8 @@ function getHighlight(){
             saveHighlight(sel.getRangeAt(i), id);
         }
 
-        //chrome.runtime.sendMessage({ type : 'updateHighlight', content : highlights});
+        console.log(highlights);
+        chrome.runtime.sendMessage({ type : 'updateHighlight', content : highlights});
 
         console.log("Highlight sent!");
         markHighlight(id);
@@ -116,12 +117,18 @@ function saveHighlight(sel, id, node, started){
             if(started){
                 var tmp = sel.cloneRange();
                 if(!start){
-                    tmp.setStartBefore(nodes[i]);
+                    // tmp.setStartBefore(nodes[i]);
+                    tmp.setStart(nodes[i], 0);
                 }
                 if(!end){
-                    tmp.setEndAfter(nodes[i]);
+                    // tmp.setEndAfter(nodes[i]);
+                    tmp.setEnd(nodes[i], nodes[i].length);
                 }
                 highlights[id].push(serialize(tmp));
+                console.log(highlights[id].length);
+                console.log(tmp.startOffset);
+                console.log(tmp.endOffset);
+                console.log("");
 
                 if(end){
                     return false;
@@ -147,7 +154,7 @@ function genRange(data){
         endContainer = document.querySelector(data.endContainer.query).childNodes[data.endContainer.textIdx],
         endOffset = data.endOffset;
 
-    range.setStart(startContainer, startContainer.length > startOffset ? startOffset : startContainer.length);
+    range.setStart(startContainer, startOffset);
     range.setEnd(endContainer, endContainer.length > endOffset ? endOffset : endContainer.length);
 
     return range;
@@ -181,7 +188,7 @@ function removeHighlight(e){
     console.log("before delete : ", highlights);
     delete highlights[Number(id.split("h")[1])];
     console.log("after delete : ", highlights);
-    //chrome.runtime.sendMessage({ type : 'updateHighlight', content : highlights});
+    chrome.runtime.sendMessage({ type : 'updateHighlight', content : highlights});
 }
 
 //
@@ -195,8 +202,11 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
     if(request.type == "getHighlight"){
         console.log("Got highlight : ", request.content);
-        // restoreHighlight(request.content);
+        restoreHighlight(request.content);
     }
 })
 
 document.addEventListener('mouseup', getHighlight);
+
+d.oncontextmenu=null;d.onselectstart=null;d.ondragstart=null;d.onkeydown=null;d.onmousedown=null;  d.body.oncontextmenu=null;d.body.onselectstart=null;d.body.ondragstart=null;d.body.onkeydown=null; d.body.onmousedown=null;
+var tb=document.all.tags('BODY');if(tb.length==0) {for(var i=0;i<top.frames.length;i++){r(top.frames[i].document);}}else{r(document);}

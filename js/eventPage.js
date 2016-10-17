@@ -205,7 +205,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
         case 'updateHighlight':
             console.log("Update highlight : ", request.content);
 
-            //updateHighlight(request.content, sender.tab.id);
+            updateHighlight(request.content, sender.tab.id);
             break;
     }
 });
