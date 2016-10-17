@@ -47,18 +47,22 @@ function checkExcludedSite(domain){
     return excludedSite.has(domain);
 }
 
-function parseContent(){
-    var content = document.getElementsByTagName('article');
-    if(content)
-        return content.innerText;
-}
-
 function collectData(id, info, tab){
     if(info.status == "complete"){
         var domain = tab.url.split('/')[tab.url.indexOf('//') < 0 ? 0 : 2].split(/[\/?:#&]/)[0];
 
         if(!checkExcludedSite(domain)){
             chrome.tabs.executeScript(tab.id, { file : "js/parseContent.js" }, function(){
+                var index = db.transaction([curNotebook]).objectStore(curNotebook).index('url'),
+                    key = IDBKeyRange.only(tab.url);
+
+                index.openCursor(key).onsuccess = function(e){
+                    var cursor = e.target.result;
+                    if(cursor){
+                        console.log((new Date()).getTime(), cursor.value.highlight);
+                        chrome.tabs.sendMessage(tab.id, { type : 'getHighlight', content : cursor.value.highlight });
+                    }
+                }
                 chrome.tabs.sendMessage(tab.id, { type : 'getContent' }, function(content){
                     chrome.tabs.captureVisibleTab(function(thumbnail){
                         var keyword;
@@ -101,6 +105,28 @@ function collectData(id, info, tab){
             });
         }
     }
+}
+
+function updateHighlight(highlight, id){
+    chrome.tabs.get(id, function(tab){
+        var index = db.transaction([curNotebook], "readwrite").objectStore(curNotebook).index('url');
+        var url = tab.url;
+        var range = IDBKeyRange.only(url);
+
+        console.log(highlight);
+
+        index.openCursor(range).onsuccess = function(e){
+            var cursor = e.target.result;
+            if(cursor){
+                var updateData = cursor.value;
+
+                updateData.highlight = JSON.stringify(highlight);
+                cursor.update(updateData);
+
+                console.log(highlight);
+            }
+        }
+    });
 }
 
 chrome.tabs.onRemoved.addListener(function(id){
@@ -149,7 +175,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
             var idx = 0;
             var notes = [];
 
-            index.openCursor().onsuccess = function(e){
+            index.openCursor(null, "prev").onsuccess = function(e){
                 var cursor = e.target.result;
                 idx++;
 
@@ -174,6 +200,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
 
         case 'getCurNotebook':
             sendResponse(curNotebook);
+            break;
+
+        case 'updateHighlight':
+            console.log("Update highlight : ", request.content);
+
+            updateHighlight(request.content, sender.tab.id);
             break;
     }
 });

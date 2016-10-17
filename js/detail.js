@@ -1,14 +1,18 @@
 var notesDiv = document.getElementsByClassName('notes')[0];
+var searchBar = document.getElementsByClassName('searchBar')[0];
 var db;
 var curNotebook;
 var req;
 
+//
+// Functions
+//
 function showNotes(){
     var index = db.transaction([curNotebook]).objectStore(curNotebook).index('time');
     var idx = 0;
     var notes = [];
 
-    index.openCursor().onsuccess = function(e){
+    index.openCursor(null, "prev").onsuccess = function(e){
         var cursor = e.target.result;
         idx++;
 
@@ -38,6 +42,38 @@ function showNotes(){
         }
     }
 }
+
+function doSearch(keyword){
+    var objStore = db.transaction([curNotebook]).objectStore(curNotebook);
+    var result = [];
+
+    objStore.openCursor().onsuccess = function(e){
+        var cursor = e.target.result;
+        if(cursor){
+            if(cursor.value.title.indexOf(keyword) != -1 ||
+                cursor.value.url.indexOf(keyword) != -1 ||
+                (cursor.value.content && cursor.value.content.indexOf(keyword) != -1) ||
+                (cursor.value.keyword && cursor.value.keyword.indexOf(keyword) != -1)){
+
+                result.push(cursor.value);
+            }
+
+            cursor.continue();
+        }
+        else{
+            console.log(result);
+        }
+    }
+}
+
+//
+// Event Listeners
+//
+searchBar.addEventListener('keypress', function(e){
+    if(e.keyCode == 13){
+        doSearch(searchBar.value);
+    }
+});
 
 //
 // Init
