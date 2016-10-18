@@ -1,6 +1,6 @@
 var db;
 var recordStat = false;
-var curNotebook = 'test';
+var curNotebook;
 var req = window.indexedDB.open('HWNote');
 var keywords = new Object();
 
@@ -8,6 +8,9 @@ function newNotebook(e){
     console.log("upgraded needed");
 
     db = e.target.result;
+    if(!curNotebook){
+        curNotebook = "MyNotebook";
+    }
     var objStore = db.createObjectStore(curNotebook, { keyPath : "id", autoIncrement : true});
 
     objStore.createIndex("title", "title", { unique : false });
@@ -18,6 +21,8 @@ function newNotebook(e){
     objStore.createIndex("search", "search", { unique : false });
     objStore.createIndex("thumbnail", "thumbnail", { unique : false });
     objStore.createIndex("keyword", "keyword", { unique : false });
+    objStore.createIndex("favorite", "favorite", { unique : false });
+    objStore.createIndex("visited", "visited", { unique : false });
 }
 
 // initial setting for indexedDB
@@ -25,8 +30,9 @@ req.onerror = function(e){
     console.log("Error!", e);
 }
 req.onsuccess = function(e){
-    console.log("success");
+    console.log("DB Success");
     db = req.result;
+    curNotebook = db.objectStoreNames[0];
 }
 req.onupgradeneeded = newNotebook;
 
@@ -48,85 +54,90 @@ function checkExcludedSite(domain){
 }
 
 function collectData(id, info, tab){
-    if(info.status == "complete"){
+    if(info.status == "complete" && recordStat){
         var domain = tab.url.split('/')[tab.url.indexOf('//') < 0 ? 0 : 2].split(/[\/?:#&]/)[0];
 
         if(!checkExcludedSite(domain)){
             chrome.tabs.executeScript(tab.id, { file : "js/parseContent.js" }, function(){
-                var index = db.transaction([curNotebook]).objectStore(curNotebook).index('url'),
+                var index = db.transaction([curNotebook], "readwrite").objectStore(curNotebook).index('url'),
                     key = IDBKeyRange.only(tab.url);
 
                 index.openCursor(key).onsuccess = function(e){
                     var cursor = e.target.result;
                     if(cursor){
-                        console.log((new Date()).getTime(), cursor.value.highlight);
+                        var updateData = cursor.value;
+
+                        updateData.time = new Date();
+                        updateData.visited++;
+                        cursor.update(updateData);
+
+                        // TODO: change position. why is this here???
                         chrome.tabs.sendMessage(tab.id, { type : 'getHighlight', content : cursor.value.highlight });
                     }
+                    else{
+                        chrome.tabs.sendMessage(tab.id, { type : 'getContent' }, function(content){
+                            chrome.tabs.captureVisibleTab(function(thumbnail){
+                                var keyword;
+                                if(tab.openerTabId in keywords){
+                                    keyword = JSON.parse(JSON.stringify(keywords[tab.openerTabId]));
+                                }
+
+                                var Site = {
+                                    title : tab.title,
+                                    url : tab.url,
+                                    time : new Date(),
+                                    content : content,
+                                    highlight : null,
+                                    search : null,
+                                    thumbnail : thumbnail,
+                                    keyword : keyword,
+                                    favorite : false,
+                                    visited : 1
+                                };
+
+                                if(!keyword){
+                                    if(keyword = checkSearchEngine(tab.url, domain)){
+                                        keyword = [keyword];
+                                    }
+                                    else{
+                                        keyword = [tab.title];
+                                    }
+                                }
+                                else{
+                                    keyword.push(tab.title);
+                                }
+
+                                keywords[tab.id] = keyword;
+
+                                db.transaction([curNotebook], "readwrite").objectStore(curNotebook).add(Site);
+
+                                console.log("Recorded : ", tab.title);
+                                if(keyword)
+                                    console.log("Keyword : ", keyword);
+                            });
+                        });
+                    }
                 }
-                chrome.tabs.sendMessage(tab.id, { type : 'getContent' }, function(content){
-                    chrome.tabs.captureVisibleTab(function(thumbnail){
-                        var keyword;
-                        if(tab.openerTabId in keywords){
-                            keyword = JSON.parse(JSON.stringify(keywords[tab.openerTabId]));
-                        }
-
-                        var Site = {
-                            title : tab.title,
-                            url : tab.url,
-                            time : new Date(),
-                            content : content,
-                            highlight : null,
-                            search : null,
-                            thumbnail : thumbnail,
-                            keyword : keyword
-                        };
-
-                        if(!keyword){
-                            if(keyword = checkSearchEngine(tab.url, domain)){
-                                keyword = [keyword];
-                            }
-                            else{
-                                keyword = [tab.title];
-                            }
-                        }
-                        else{
-                            keyword.push(tab.title);
-                        }
-
-                        keywords[tab.id] = keyword;
-
-                        db.transaction([curNotebook], "readwrite").objectStore(curNotebook).add(Site);
-
-                        console.log("Recorded : ", tab.title);
-                        if(keyword)
-                            console.log("Keyword : ", keyword);
-                    });
-                });
             });
         }
     }
 }
 
-function updateHighlight(highlight, id){
-    chrome.tabs.get(id, function(tab){
-        var index = db.transaction([curNotebook], "readwrite").objectStore(curNotebook).index('url');
-        var url = tab.url;
-        var range = IDBKeyRange.only(url);
+function updateValue(target, data, url){
+    var index = db.transaction([curNotebook], "readwrite").objectStore(curNotebook).index('url');
+    var range = IDBKeyRange.only(url);
 
-        console.log(highlight);
+    index.openCursor(range).onsuccess = function(e){
+        var cursor = e.target.result;
+        if(cursor){
+            var updateData = cursor.value;
 
-        index.openCursor(range).onsuccess = function(e){
-            var cursor = e.target.result;
-            if(cursor){
-                var updateData = cursor.value;
+            updateData[target] = data;
+            cursor.update(updateData);
 
-                updateData.highlight = JSON.stringify(highlight);
-                cursor.update(updateData);
-
-                console.log(highlight);
-            }
+            console.log(data);
         }
-    });
+    }
 }
 
 chrome.tabs.onRemoved.addListener(function(id){
@@ -140,19 +151,18 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
         case 'setRecordStat':
             console.log("Message Received : setRecordStat");
 
-            recordStat ^= true;
-            if(request.content == true){
+            recordStat = request.content;
+            if(recordStat == true){
                 chrome.tabs.onUpdated.addListener(collectData);
             }
-            else if(request.content == false){
+            else if(recordStat == false){
                 chrome.tabs.onUpdated.removeListener(collectData);
             }
             break;
 
-        case 'getRecordStat':
-            console.log("Message Received : getRecordStat");
-
-            sendResponse(recordStat);
+        case 'popup_init':
+            console.log(recordStat);
+            sendResponse({ recordStat: recordStat, curNotebook: curNotebook });
             break;
 
         case 'newNotebook':
@@ -168,6 +178,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
         case 'changeNotebook':
             console.log("change notebook : ", request.content);
             curNotebook = request.content;
+            sendResponse();
             break;
 
         case 'getNotes':
@@ -198,14 +209,10 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
             sendResponse(response);
             break;
 
-        case 'getCurNotebook':
-            sendResponse(curNotebook);
-            break;
+        case 'updateValue':
+            console.log("Update ", request.target, " : ", request.content);
 
-        case 'updateHighlight':
-            console.log("Update highlight : ", request.content);
-
-            updateHighlight(request.content, sender.tab.id);
+            updateValue(request.target, request.content, sender.tab ? sender.tab.url : request.url);
             break;
     }
 });

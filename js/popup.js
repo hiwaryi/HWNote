@@ -3,88 +3,112 @@ var addNotebookButton = document.getElementsByClassName('addNotebook')[0];
 var notebooksDiv = document.getElementsByClassName('notebooks')[0];
 var notesDiv = document.getElementsByClassName('notes')[0];
 var detailDiv = document.getElementsByClassName('detail')[0];
-var recordStat;
+var curNotebookSpan = document.getElementsByClassName('curNotebookTitle')[0];
+var recordStat = false;
 var curNotebook;
+var req = window.indexedDB.open('HWNote');
+
+req.onerror = function(e){
+    console.log("DB error : ", e);
+}
+req.onsuccess = function(e){
+    console.log("DB Success");
+    db = req.result;
+    init();
+}
 
 //
 // Functions
 //
-function showRecordStat(){
-    chrome.runtime.sendMessage({ type : "getRecordStat" }, function(response){
-        recordStat = response;
-        console.log("Record stat : ", recordStat);
-
-        if(recordStat == true)
-            recordButton.innerHTML = "Recording..";
-        else
-            recordButton.innerHTML = "Not recording..";
-    });
-};
 
 function boldCurNotebook(){
     var strong = document.createElement('strong');
-    var target = document.querySelector(".notebookName#" + curNotebook);
+    var target = document.querySelector(".notebookName#" + curNotebook.replace(/ /g, "_"));
 
-    strong.innerHTML = target.outerHTML;
-    target.parentNode.replaceChild(strong, target);
+    target.innerHTML = "<strong>" + target.innerText + "</strong>";
 }
 
 function showNotebookList(){
-    chrome.runtime.sendMessage({ type : "getNotebookList" }, function(response){
-        var notebookList = response.notebookList;
-        curNotebook = response.curNotebook;
+    var notebookList = db.objectStoreNames;
 
-        for(var i = 0; i < notebookList.length; i++){
-            var html = document.createElement('a');
-            html.className = "notebookName";
-            html.id = notebookList[i];
-            html.innerText = notebookList[i];
+    for(var i = 0; i < notebookList.length; i++){
+        var a = document.createElement('a');
+        a.className = "mdl-navigation__link notebookName";
+        a.id = notebookList[i].replace(/ /g, "_");
+        a.innerText = notebookList[i];
 
-            notebooksDiv.appendChild(html);
-            notebooksDiv.insertAdjacentHTML('beforeend', "<br>");
-        }
+        notebooksDiv.insertAdjacentElement('beforeend', a);
+    }
 
-        boldCurNotebook();
-    });
+    boldCurNotebook();
 }
 
 function showNotes(){
-    chrome.runtime.sendMessage({ type : "getNotes" });
-    chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
-        if(request.type == "sendNotes"){
-            var notes = request.content;
+    var index = db.transaction(curNotebook).objectStore(curNotebook).index('time'),
+        idx = 0;
 
-            for(var i = 0; i < notes.length; i++){
-                var html = document.createElement('a');
-                html.className = "note";
-                html.id = i;
-                html.innerText = notes[i];
+    index.openCursor(null, "prev").onsuccess = function(e){
+        var cursor = e.target.result;
 
-                notesDiv.appendChild(html);
-                notesDiv.insertAdjacentHTML('beforeend', "<br>");
+        if(cursor && idx++ < 10){
+            var ul = document.createElement('ul');
+            ul.className = "mdl-list__item";
+
+            // title
+            var span = document.createElement('span');
+            span.className = "mdl-list__item-primary-content note";
+            span.id = idx;
+            span.innerText = cursor.value.title;
+            if(cursor.value.title.length > 30){
+                span.innerText = cursor.value.title.substring(0, 30) + "...";
             }
-        }
 
-        chrome.runtime.onMessage.removeListener(this);
-    })
+            // draw star
+            var a = document.createElement('a');
+            a.className = "mdl-list__item-secondary-action";
+            a.href = "#";
+            var star = document.createElement('i');
+            star.className = "material-icons";
+            star.innerText = cursor.value.favorite ? "star" : "star_border";
+            star.addEventListener('click', function(e){
+                if(e.target.innerText == "star"){
+                    e.target.innerText = "star_border";
+                    chrome.runtime.sendMessage({ type : "updateValue", target : "favorite", content : false, url : cursor.value.url });
+                }
+                else{
+                    e.target.innerText = "star";
+                    chrome.runtime.sendMessage({ type : "updateValue", target : "favorite", content : true, url : cursor.value.url });
+                }
+            });
+            a.appendChild(star);
+
+            ul.appendChild(span);
+            ul.appendChild(a);
+            notesDiv.insertAdjacentElement('afterbegin', ul);
+
+            cursor.continue();
+        }
+    };
 }
 
 //
 // Event listeners
 //
 recordButton.addEventListener('click', function(){
-    console.log("button clicked!");
+    recordStat = recordStat != true;
 
-    recordStat = recordStat ^ true;
-    showRecordStat();
+    console.log("Record Stat : ", recordStat);
 
     chrome.runtime.sendMessage({ type : "setRecordStat", content : recordStat });
 });
 
 addNotebookButton.addEventListener('click', function(){
     var notebookName = prompt("Please input new notebook's name : ");
-
-    chrome.runtime.sendMessage({ type : 'newNotebook', content : notebookName });
+    if(notebookName){
+        chrome.runtime.sendMessage({ type : 'newNotebook', content : notebookName }, function(e){
+            location.reload();
+        });
+    }
 });
 
 notebooksDiv.addEventListener('click', function(e){
@@ -92,23 +116,32 @@ notebooksDiv.addEventListener('click', function(e){
     console.log(clicked);
 
     if(curNotebook != clicked){
-        curNotebook = clicked;
-        chrome.runtime.sendMessage({ type : 'changeNotebook', content : clicked});
         boldCurNotebook();
+        curNotebook = clicked;
+        chrome.runtime.sendMessage({ type : 'changeNotebook', content : clicked}, function(e){
+            location.reload();
+        });
     }
 });
 
 detailDiv.addEventListener('click', function(e){
     chrome.tabs.create({ 'url' : chrome.extension.getURL('detail.html')});
-})
+});
 
 
 //
 // Initializer
 //
 function init(){
-    showRecordStat();
-    showNotebookList();
-    showNotes();
+    chrome.runtime.sendMessage({ type: 'popup_init' }, function(response){
+        curNotebook = response.curNotebook;
+        if(response.recordStat){
+            recordButton.click();
+        }
+
+        curNotebookSpan.innerText = curNotebook;
+
+        showNotebookList();
+        showNotes();
+    });
 }
-init();

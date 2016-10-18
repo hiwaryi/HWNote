@@ -1,21 +1,44 @@
-<html>
-<body style = "width : 400px;">
-    <button class = "record">Not recording..</button>
-    <button class = "addNotebook">+</button>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <br><br>
-    <div class = "detail">
-        details
-    </div>
+<html style = "height: 475px; width: 350px;">
+<head>
+    <link rel="stylesheet" href="lib/material.min.css">
+    <script src="lib/material.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+</head>
 
-    <br><br>
-
-    <div class = "notebooks">
-    </div>
-
-    <br><br>
-
-    <div class = "notes">
+<body>
+    <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+        <header class="mdl-layout__header">
+            <div class="mdl-layout__header-row">
+                <!-- Title -->
+                <span class="mdl-layout-title curNotebookTitle"></span>
+                <!-- Add spacer, to align navigation to the right -->
+                <div class="mdl-layout-spacer"></div>
+                <nav class="mdl-navigation">
+                    <label class="mdl-switch mdl-js-switch mdl-js-ripple-effect" for="switch">
+                        <input type="checkbox" id="switch" class="mdl-switch__input record">
+                    </label>
+                </nav>
+            </div>
+        </header>
+        <div class="mdl-layout__drawer">
+            <span class="mdl-layout-title">Notebook List</span>
+            <nav class="mdl-navigation notebooks">
+                <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored">
+                    <i class="material-icons addNotebook">add</i>
+                </button>
+            </nav>
+        </div>
+        <main class="mdl-layout__content">
+            <div class="page-content">
+                <ul class="mdl-list notes">
+                    <ul class="mdl-list__item">
+                        <span class = "mdl-list__item-primary-content detail">See more</span>
+                    </ul>
+                </ul>
+            </div>
+        </main>
     </div>
 
     <script src = "js/popup.js"></script>

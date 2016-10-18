@@ -93,7 +93,7 @@ function getHighlight(){
         }
 
         console.log(highlights);
-        chrome.runtime.sendMessage({ type : 'updateHighlight', content : highlights});
+        chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
 
         console.log("Highlight sent!");
         markHighlight(id);
@@ -188,7 +188,7 @@ function removeHighlight(e){
     console.log("before delete : ", highlights);
     delete highlights[Number(id.split("h")[1])];
     console.log("after delete : ", highlights);
-    chrome.runtime.sendMessage({ type : 'updateHighlight', content : highlights});
+    chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
 }
 
 //
@@ -207,6 +207,3 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
 })
 
 document.addEventListener('mouseup', getHighlight);
-
-d.oncontextmenu=null;d.onselectstart=null;d.ondragstart=null;d.onkeydown=null;d.onmousedown=null;  d.body.oncontextmenu=null;d.body.onselectstart=null;d.body.ondragstart=null;d.body.onkeydown=null; d.body.onmousedown=null;
-var tb=document.all.tags('BODY');if(tb.length==0) {for(var i=0;i<top.frames.length;i++){r(top.frames[i].document);}}else{r(document);}
