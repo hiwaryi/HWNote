@@ -140,6 +140,16 @@ function updateValue(target, data, url){
     }
 }
 
+function deleteObject(id){
+    var request = db.transaction([curNotebook], "readwrite").objectStore(curNotebook).delete(Number(id));
+    request.onsuccess = function(e){
+        console.log(e);
+    }
+    request.onerror = function(e){
+        console.log(e);
+    }
+}
+
 chrome.tabs.onRemoved.addListener(function(id){
     if(id in keywords){
         delete keywords[id];
@@ -160,7 +170,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
             }
             break;
 
-        case 'popup_init':
+        case 'init':
             console.log(recordStat);
             sendResponse({ recordStat: recordStat, curNotebook: curNotebook });
             break;
@@ -212,7 +222,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
         case 'updateValue':
             console.log("Update ", request.target, " : ", request.content);
 
-            updateValue(request.target, request.content, sender.tab ? sender.tab.url : request.url);
+            updateValue(request.target, request.content, request.url ? request.url : sender.tab.url);
             break;
+
+        case 'deleteObject':
+            console.log("Delete : ", request.url);
+
+            deleteObject(request.url)
     }
 });

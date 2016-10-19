@@ -133,7 +133,7 @@ detailDiv.addEventListener('click', function(e){
 // Initializer
 //
 function init(){
-    chrome.runtime.sendMessage({ type: 'popup_init' }, function(response){
+    chrome.runtime.sendMessage({ type: 'init' }, function(response){
         curNotebook = response.curNotebook;
         if(response.recordStat){
             recordButton.click();

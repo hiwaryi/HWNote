@@ -2,49 +2,72 @@
 
 <html>
 <head>
-    <link rel="stylesheet" href="lib/material.min.css">
-    <script src="lib/material.min.js"></script>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <style type="text/css">
+        body{
+            background: #f0f0f0;
+        }
+        .mdl-cell{
+            background: white;
+        }
+        img{
+            width: auto;
+            height: auto;
+            max-width : 100%;
+            max-height: 100%;
+            display: block;
+        }
+
+        .mdl-shadow--2dp{
+            margin-top: 30px !important;
+        }
+
+        .bottom{
+            font-size: 12px;
+            text-align: right;
+        }
+        h4, h6{
+            display: inline-block;
+        }
+
+        .title, .date{
+            margin : 0;
+        }
+        .date{
+            margin-bottom: 20px;
+        }
+        .mdl-layout__drawer-button > i {
+            margin-top : 12px;
+        }
+    </style>
 </head>
-
 <body>
-
     <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
         <header class="mdl-layout__header">
             <div class="mdl-layout__header-row">
-                <!-- Title -->
-                <span class="mdl-layout-title">Title</span>
-                <!-- Add spacer, to align navigation to the right -->
+                <span class="mdl-layout-title curNotebookTitle"></span>
                 <div class="mdl-layout-spacer"></div>
-                <!-- Navigation. We hide it in small screens. -->
-                <nav class="mdl-navigation mdl-layout--large-screen-only">
-                    <a class="mdl-navigation__link" href="">Link</a>
-                    <a class="mdl-navigation__link" href="">Link</a>
-                    <a class="mdl-navigation__link" href="">Link</a>
-                    <a class="mdl-navigation__link" href="">Link</a>
-                </nav>
             </div>
         </header>
         <div class="mdl-layout__drawer">
-            <span class="mdl-layout-title">Title</span>
-            <nav class="mdl-navigation">
-                <a class="mdl-navigation__link" href="">Link</a>
-                <a class="mdl-navigation__link" href="">Link</a>
-                <a class="mdl-navigation__link" href="">Link</a>
-                <a class="mdl-navigation__link" href="">Link</a>
+            <span class="mdl-layout-title">Notebook List</span>
+            <nav class="mdl-navigation notebooks">
+                <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored">
+                    <i class="material-icons addNotebook">add</i>
+                </button>
             </nav>
         </div>
         <main class="mdl-layout__content">
-            <div class="page-content"><!-- Your content goes here --></div>
+            <div class="page-content notes">
+                <!-- Contents start -->
+
+                <!-- Contents end -->
+
+            </div>
         </main>
     </div>
-    <input type = "text" class = "searchBar">
-
-    <br><br>
-
-    <div class = "notes">
-    </div>
-
     <script src = "js/detail.js"></script>
+    <link rel="stylesheet" href="lib/material.min.css">
+    <script src="lib/material.min.js"></script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
 </body>
 </html>
