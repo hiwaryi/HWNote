@@ -4,10 +4,12 @@ var notebooksDiv = document.getElementsByClassName('notebooks')[0];
 var curNotebookSpan = document.getElementsByClassName('curNotebookTitle')[0];
 var addNotebookButton = document.getElementsByClassName('addNotebook')[0];
 var pageContentDiv = document.getElementsByClassName('page-content')[0];
-var styleTag= document.getElementsByTagName('style')[0];
+var styleTag = document.getElementsByTagName('style')[0];
+var dialog = document.getElementsByTagName('dialog')[0];
 var db;
 var curNotebook;
 var req;
+var toDelete;
 
 //
 // Functions
@@ -35,22 +37,51 @@ function showNotebookList(){
     boldCurNotebook();
 }
 
-function showNotes(){
+function showSearchResultBar(keyword){
+    var html = '<div class="mdl-grid"> <div class="mdl-cell mdl-cell--10-col mdl-cell--1-offset search"> <button class="mdl-button mdl-js-button mdl-button--icon backButton"> <i class="material-icons backIcon">arrow_back</i> </button> <span class="searchKeyword">Search : keyword</span> </div> </div>';
+    var node = (new DOMParser()).parseFromString(html, "application/xml");
+
+    var backButton = node.getElementsByClassName("backButton")[0];
+    backButton.addEventListener('click', function(e){
+        location.assign("");
+    });
+
+    var searchKeyword = node.getElementsByClassName("searchKeyword")[0];
+    searchKeyword.innerHTML = "Keyword : " + keyword;
+
+    notesDiv.innerHTML += node.childNodes[0].innerHTML;
+}
+
+function showNotes(keyword){
     var index = db.transaction([curNotebook]).objectStore(curNotebook).index('time');
     var idx = 0;
     var notes = [];
+
+    if(keyword){
+        showSearchResultBar(keyword);
+    }
 
     index.openCursor(null, "prev").onsuccess = function(e){
         var cursor = e.target.result;
         idx++;
 
-        if(cursor && idx <= 10){
-            notes.push(cursor.value);
+        if(cursor && (keyword || idx <= 10)){
+            if(keyword){
+                if(cursor.value.title.indexOf(keyword) != -1 ||
+                    cursor.value.url.indexOf(keyword) != -1 ||
+                    (cursor.value.content && cursor.value.content.indexOf(keyword) != -1) ||
+                    (cursor.value.keyword && cursor.value.keyword.indexOf(keyword) != -1)){
+                        notes.push(cursor.value);
+                }
+            }
+            else{
+                notes.push(cursor.value);
+            }
             cursor.continue();
         }
         else{
             for(var i = 0; i < notes.length; i++){
-                var html = '<div class="mdl-grid"> <div class="mdl-cell mdl-cell--10-col mdl-cell--1-offset mdl-shadow--2dp"> <div class="mdl-grid mdl-grid--no-spacing"> <div class="mdl-cell mdl-cell--3-col thumbnail"> </div> <div class="mdl-cell mdl-cell--9-col"> <div class="mdl-card mdl-cell--12-col"> <div class="mdl-card__supporting-text"> <h4 class="title">Title</h4> <h6 class="date">2016-10-19 09:12</h6><br/> <div class="contents">Dolore ex deserunt aute ugiat aute nulla ea sunt aliqua nisi cupidatat eu. Nostrud in laboris labore nisi amet do dolor eu fugiat consectetur elit cillum esse. Pariatur occaecat nisi laboris tempor laboris eiusmod qui id Lorem esse commodo in. Exercitation aute dolore deserunt culpa consequat elit labore incididunt elit anim.</div> </div> <div class="mdl-card__menu"> <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"> <i class="material-icons favorite">star_border</i> </button> <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect highlight"> <i class="material-icons">highlight</i> </button> <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect delete"> <i class="material-icons">delete</i> </button> </div> <div class="bottom"> Keyword : javascript | visited : 5 </div> </div> </div> </div> </div> </div>'
+                var html = '<div class="mdl-grid"> <div class="mdl-cell mdl-cell--10-col mdl-cell--1-offset mdl-shadow--2dp"> <div class="mdl-grid mdl-grid--no-spacing"> <div class="mdl-cell mdl-cell--3-col thumbnail"> </div> <div class="mdl-cell mdl-cell--9-col"> <div class="mdl-card mdl-cell--12-col"> <div class="mdl-card__supporting-text"> <h4 class="title">Title</h4> <h6 class="date">2016-10-19 09:12</h6><br/> <div class="contents">Dolore ex deserunt aute ugiat aute nulla ea sunt aliqua nisi cupidatat eu. Nostrud in laboris labore nisi amet do dolor eu fugiat consectetur elit cillum esse. Pariatur occaecat nisi laboris tempor laboris eiusmod qui id Lorem esse commodo in. Exercitation aute dolore deserunt culpa consequat elit labore incididunt elit anim.</div> </div> <div class="mdl-card__menu"> <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"> <i class="material-icons favorite">star_border</i> </button> <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect highlight"> <i class="material-icons">highlight</i> </button> <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect delete"> <i class="material-icons">delete</i> </button> </div> <div class="bottom"> Keyword : <span class="keyword"></span> | visited : <span class="visited"></span> </div> </div> </div> </div> </div> </div>'
                 var node = (new DOMParser()).parseFromString(html, "application/xml");
 
                 // naming card and thumbnail
@@ -77,8 +108,10 @@ function showNotes(){
                 del.className += notes[i].id;
 
                 // setting contents
-                node.childNodes[0].getElementsByClassName('title')[0].innerHTML = notes[i].title;
+                node.childNodes[0].getElementsByClassName('title')[0].innerHTML = '<a href="' + notes[i].url + '" target="_blank">' + notes[i].title + '</a>';
                 node.childNodes[0].getElementsByClassName('date')[0].innerHTML = notes[i].time;
+                node.childNodes[0].getElementsByClassName('keyword')[0].innerHTML = notes[i].keyword ? notes[i].keyword : "none";
+                node.childNodes[0].getElementsByClassName('visited')[0].innerHTML = notes[i].visited;
 
 
                 // notesDiv.appendChild(node.childNodes[0]);
@@ -119,7 +152,7 @@ function showNotes(){
                         alert('click!');
 
                         // TODO: show dialog
-                    })
+                    });
                 }
 
                 // delete
@@ -128,11 +161,15 @@ function showNotes(){
                     var del = e.target.parentNode;
                     var id = del.classList[4].split("delete")[1];
 
-                    chrome.runtime.sendMessage({ type : 'deleteObject', url : id }, function(e){
-                        location.reload();
-                    });
-                })
+                    toDelete = id;
+                    dialog.showModal();
+                });
             }
+
+            var backButton = document.getElementsByClassName("backButton")[0];
+            backButton.addEventListener('click', function(e){
+                location.assign(chrome.extension.getURL('detail.html'));
+            });
         }
     }
 }
@@ -163,11 +200,23 @@ function doSearch(keyword){
 //
 // Event Listeners
 //
-// searchBar.addEventListener('keypress', function(e){
-//     if(e.keyCode == 13){
-//         doSearch(searchBar.value);
-//     }
-// });
+searchBar.addEventListener('keypress', function(e){
+    if(e.keyCode == 13 && searchBar.value){
+        var url = "?search=" + searchBar.value;
+        location.replace(url);
+    }
+});
+
+dialog.querySelector('.ok').addEventListener('click', function(e){
+    chrome.runtime.sendMessage({ type : 'deleteObject', url : toDelete }, function(e){
+        location.reload();
+    });
+});
+
+dialog.querySelector('.cancel').addEventListener('click', function(e){
+    toDelete = null;
+    dialog.close();
+})
 
 //
 // Init
@@ -186,7 +235,8 @@ function init(){
 
             curNotebookSpan.innerText = curNotebook;
 
-            showNotes();
+            var keyword = location.search.replace("?search=", "");
+            showNotes(keyword);
             showNotebookList();
         });
     }

@@ -82,8 +82,10 @@ function collectData(id, info, tab){
                                     keyword = JSON.parse(JSON.stringify(keywords[tab.openerTabId]));
                                 }
 
+                                var title = tab.title.replace("<", "&lt;").replace(">", "&gt;");
+
                                 var Site = {
-                                    title : tab.title,
+                                    title : title,
                                     url : tab.url,
                                     time : new Date(),
                                     content : content,

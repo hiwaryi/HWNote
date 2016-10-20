@@ -35,17 +35,46 @@
         .date{
             margin-bottom: 20px;
         }
-        .mdl-layout__drawer-button > i {
-            margin-top : 12px;
+        .mdl-layout__drawer-button > i{
+            margin-top : 12px !important;
+        }
+
+        .search{
+            margin-top: 25px !important;
+            background: none;
+            color : rgba(0, 0, 0, .54);
+        }
+
+        a{
+            color: rgba(0, 0, 0, .54) !important;
+            text-decoration: none;
         }
     </style>
 </head>
 <body>
+    <dialog class="mdl-dialog">
+        <div class="mdl-dialog__content">
+            Are you sure to delete?
+        </div>
+        <div class="mdl-dialog__actions">
+            <button type="button" class="mdl-button cancel">Cancel</button>
+            <button type="button" class="mdl-button ok">OK</button>
+        </div>
+    </dialog>
     <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
         <header class="mdl-layout__header">
             <div class="mdl-layout__header-row">
                 <span class="mdl-layout-title curNotebookTitle"></span>
                 <div class="mdl-layout-spacer"></div>
+                    <div class="mdl-textfield mdl-js-textfield mdl-textfield--expandable">
+                        <label class="mdl-button mdl-js-button mdl-button--icon" for="sample6">
+                            <i class="material-icons">search</i>
+                        </label>
+                        <div class="mdl-textfield__expandable-holder">
+                            <input class="mdl-textfield__input searchBar" type="text" id="sample6">
+                            <label class="mdl-textfield__label" for="sample-expandable">Expandable Input</label>
+                        </div>
+                    </div>
             </div>
         </header>
         <div class="mdl-layout__drawer">
