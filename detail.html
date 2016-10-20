@@ -49,10 +49,27 @@
             color: rgba(0, 0, 0, .54) !important;
             text-decoration: none;
         }
+
+        .showTexts{
+            width: 720px !important;
+            line-height : 50px !important;
+        }
+        .showTexts > .mdl-dialog__title{
+            font-size : 1rem;
+        }
+        .showTexts > .mdl-dialog__content {
+            height: 400px !important;
+            overflow-y: scroll;
+        }
+        .showTexts > div > p{
+            font-size : 1.5rem;
+            font-family: "TrolaText", Times, serif;
+            line-height : 35px;
+        }
     </style>
 </head>
 <body>
-    <dialog class="mdl-dialog">
+    <dialog class="mdl-dialog deleteConfirm">
         <div class="mdl-dialog__content">
             Are you sure to delete?
         </div>
@@ -61,6 +78,18 @@
             <button type="button" class="mdl-button ok">OK</button>
         </div>
     </dialog>
+
+    <dialog class="mdl-dialog showTexts">
+        <div class="mdl-dialog__title">
+            lskfjlsdkjflskdfjlsdkjfskjflsklkdjflskdjskdfjlskdjf
+        </div>
+        <div class="mdl-dialog__content">
+        </div>
+        <div class="mdl-dialog__actions">
+            <button type="button" class="mdl-button close">close</button>
+        </div>
+    </dialog>
+
     <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
         <header class="mdl-layout__header">
             <div class="mdl-layout__header-row">

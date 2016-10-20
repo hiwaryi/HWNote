@@ -5,7 +5,7 @@
   "version": "1.0",
 
   "permissions": [
-    "tabs", "<all_urls>", "sessions"
+    "tabs", "http://*/", "https://*/", "sessions"
   ],
   "browser_action": {
     "default_icon": "icon.png",
@@ -14,6 +14,13 @@
   },
   "background": {
     "scripts": ["js/eventPage.js"],
+    "matches": ["http://*/*", "https://*/*"],
     "persistent": false
-  }
+    },
+  "content_scripts": [{
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["js/parseContent.js"],
+      "css": ["css/parseContent.css"],
+      "run_at": "document_end"
+  }]
 }

@@ -23,6 +23,7 @@ function newNotebook(e){
     objStore.createIndex("keyword", "keyword", { unique : false });
     objStore.createIndex("favorite", "favorite", { unique : false });
     objStore.createIndex("visited", "visited", { unique : false });
+    objStore.createIndex("texts", "texts", { unique : false });
 }
 
 // initial setting for indexedDB
@@ -58,69 +59,68 @@ function collectData(id, info, tab){
         var domain = tab.url.split('/')[tab.url.indexOf('//') < 0 ? 0 : 2].split(/[\/?:#&]/)[0];
 
         if(!checkExcludedSite(domain)){
-            chrome.tabs.executeScript(tab.id, { file : "js/parseContent.js" }, function(){
-                var index = db.transaction([curNotebook], "readwrite").objectStore(curNotebook).index('url'),
-                    key = IDBKeyRange.only(tab.url);
+            var index = db.transaction([curNotebook], "readwrite").objectStore(curNotebook).index('url'),
+                key = IDBKeyRange.only(tab.url);
 
-                index.openCursor(key).onsuccess = function(e){
-                    var cursor = e.target.result;
-                    if(cursor){
-                        var updateData = cursor.value;
+            index.openCursor(key).onsuccess = function(e){
+                var cursor = e.target.result;
+                if(cursor){
+                    var updateData = cursor.value;
 
-                        updateData.time = new Date();
-                        updateData.visited++;
-                        cursor.update(updateData);
+                    updateData.time = new Date();
+                    updateData.visited++;
+                    cursor.update(updateData);
 
-                        // TODO: change position. why is this here???
-                        chrome.tabs.sendMessage(tab.id, { type : 'getHighlight', content : cursor.value.highlight });
-                    }
-                    else{
-                        chrome.tabs.sendMessage(tab.id, { type : 'getContent' }, function(content){
-                            chrome.tabs.captureVisibleTab(function(thumbnail){
-                                var keyword;
-                                if(tab.openerTabId in keywords){
-                                    keyword = JSON.parse(JSON.stringify(keywords[tab.openerTabId]));
-                                }
+                    // TODO: change position. why is this here???
+                    // chrome.tabs.sendMessage(tab.id, { type : 'getHighlight', content : cursor.value.highlight });
+                }
+                else{
+                    chrome.tabs.sendMessage(tab.id, { type : 'getContent' }, function(content){
+                        chrome.tabs.captureVisibleTab(function(thumbnail){
+                            var keyword;
+                            if(tab.openerTabId in keywords){
+                                keyword = JSON.parse(JSON.stringify(keywords[tab.openerTabId]));
+                            }
 
-                                var title = tab.title.replace("<", "&lt;").replace(">", "&gt;");
+                            var title = tab.title.replace("<", "&lt;").replace(">", "&gt;");
 
-                                var Site = {
-                                    title : title,
-                                    url : tab.url,
-                                    time : new Date(),
-                                    content : content,
-                                    highlight : null,
-                                    search : null,
-                                    thumbnail : thumbnail,
-                                    keyword : keyword,
-                                    favorite : false,
-                                    visited : 1
-                                };
+                            var Site = {
+                                title : title,
+                                url : tab.url,
+                                time : new Date(),
+                                content : content,
+                                highlight : null,
+                                search : null,
+                                thumbnail : thumbnail,
+                                keyword : keyword,
+                                favorite : false,
+                                visited : 1,
+                                texts : null
+                            };
 
-                                if(!keyword){
-                                    if(keyword = checkSearchEngine(tab.url, domain)){
-                                        keyword = [keyword];
-                                    }
-                                    else{
-                                        keyword = [tab.title];
-                                    }
+                            if(!keyword){
+                                if(keyword = checkSearchEngine(tab.url, domain)){
+                                    keyword = [keyword];
                                 }
                                 else{
-                                    keyword.push(tab.title);
+                                    keyword = [tab.title];
                                 }
+                            }
+                            else{
+                                keyword.push(tab.title);
+                            }
 
-                                keywords[tab.id] = keyword;
+                            keywords[tab.id] = keyword;
 
-                                db.transaction([curNotebook], "readwrite").objectStore(curNotebook).add(Site);
+                            db.transaction([curNotebook], "readwrite").objectStore(curNotebook).add(Site);
 
-                                console.log("Recorded : ", tab.title);
-                                if(keyword)
-                                    console.log("Keyword : ", keyword);
-                            });
+                            console.log("Recorded : ", tab.title);
+                            if(keyword)
+                                console.log("Keyword : ", keyword);
                         });
-                    }
+                    });
                 }
-            });
+            }
         }
     }
 }
@@ -155,6 +155,20 @@ function deleteObject(id){
 chrome.tabs.onRemoved.addListener(function(id){
     if(id in keywords){
         delete keywords[id];
+    }
+});
+
+chrome.tabs.onUpdated.addListener(function(id, info, tab){
+    if(info.status == "complete"){
+        var index = db.transaction([curNotebook], "readwrite").objectStore(curNotebook).index('url'),
+            key = IDBKeyRange.only(tab.url);
+
+        index.openCursor(key).onsuccess = function(e){
+            var cursor = e.target.result;
+            if(cursor){
+                chrome.tabs.sendMessage(tab.id, { type: "getHighlight", content: cursor.value.highlight });
+            }
+        }
     }
 });
 
@@ -222,14 +236,17 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
             break;
 
         case 'updateValue':
-            console.log("Update ", request.target, " : ", request.content);
+            if(recordStat){
+                console.log("Update ", request.target, " : ", request.content);
 
-            updateValue(request.target, request.content, request.url ? request.url : sender.tab.url);
+                updateValue(request.target, request.content, request.url ? request.url : sender.tab.url);
+            }
             break;
 
         case 'deleteObject':
             console.log("Delete : ", request.url);
 
-            deleteObject(request.url)
+            deleteObject(request.url);
+            break;
     }
 });

@@ -5,7 +5,8 @@ var curNotebookSpan = document.getElementsByClassName('curNotebookTitle')[0];
 var addNotebookButton = document.getElementsByClassName('addNotebook')[0];
 var pageContentDiv = document.getElementsByClassName('page-content')[0];
 var styleTag = document.getElementsByTagName('style')[0];
-var dialog = document.getElementsByTagName('dialog')[0];
+var deleteDialog = document.getElementsByClassName('deleteConfirm')[0];
+var textsDialog = document.getElementsByClassName('showTexts')[0];
 var db;
 var curNotebook;
 var req;
@@ -108,7 +109,6 @@ function showNotes(keyword){
                 del.className += notes[i].id;
 
                 // setting contents
-                node.childNodes[0].getElementsByClassName('title')[0].innerHTML = '<a href="' + notes[i].url + '" target="_blank">' + notes[i].title + '</a>';
                 node.childNodes[0].getElementsByClassName('date')[0].innerHTML = notes[i].time;
                 node.childNodes[0].getElementsByClassName('keyword')[0].innerHTML = notes[i].keyword ? notes[i].keyword : "none";
                 node.childNodes[0].getElementsByClassName('visited')[0].innerHTML = notes[i].visited;
@@ -121,6 +121,7 @@ function showNotes(keyword){
                     highlight = document.getElementsByClassName('highlight' + notes[i].id)[0];
                     highlight.outerHTML = "<button disabled" + highlight.outerHTML.substring(7);
                 }
+                document.querySelector(".note" + notes[i].id).querySelector('.title').innerHTML = '<a href="' + notes[i].url + '" target="_blank">' + notes[i].title + '</a>';
             }
 
             // Event Listeners
@@ -149,9 +150,24 @@ function showNotes(keyword){
                 var highlight = document.getElementsByClassName('highlight' + notes[i].id)[0];
                 if(notes[i].highlight){
                     highlight.addEventListener('click', function(e){
-                        alert('click!');
+                        var highlight = e.target.parentNode.classList[4];
+                        var id = highlight.split("highlight")[1];
 
-                        // TODO: show dialog
+                        for(var i = 0; i < notes.length; i++){
+                            if(id == notes[i].id) break;
+                        }
+
+                        textsDialog.querySelector(".mdl-dialog__title").innerHTML = notes[i].title;
+                        textsDialog.querySelector(".mdl-dialog__content").innerHTML = "";
+
+                        for(var idx in notes[i].texts){
+                            var p = document.createElement('p');
+                            p.innerText = notes[i].texts[idx];
+
+                            textsDialog.querySelector(".mdl-dialog__content").innerHTML += p.outerHTML + "<hr>";
+                        }
+
+                        textsDialog.showModal();
                     });
                 }
 
@@ -162,14 +178,16 @@ function showNotes(keyword){
                     var id = del.classList[4].split("delete")[1];
 
                     toDelete = id;
-                    dialog.showModal();
+                    deleteDialog.showModal();
                 });
             }
 
             var backButton = document.getElementsByClassName("backButton")[0];
-            backButton.addEventListener('click', function(e){
-                location.assign(chrome.extension.getURL('detail.html'));
-            });
+            if(backButton){
+                backButton.addEventListener('click', function(e){
+                    location.assign(chrome.extension.getURL('detail.html'));
+                });
+            }
         }
     }
 }
@@ -207,15 +225,19 @@ searchBar.addEventListener('keypress', function(e){
     }
 });
 
-dialog.querySelector('.ok').addEventListener('click', function(e){
+deleteDialog.querySelector('.ok').addEventListener('click', function(e){
     chrome.runtime.sendMessage({ type : 'deleteObject', url : toDelete }, function(e){
         location.reload();
     });
 });
 
-dialog.querySelector('.cancel').addEventListener('click', function(e){
+deleteDialog.querySelector('.cancel').addEventListener('click', function(e){
     toDelete = null;
-    dialog.close();
+    deleteDialog.close();
+});
+
+textsDialog.querySelector('.close').addEventListener('click', function(e){
+    textsDialog.close();
 })
 
 //

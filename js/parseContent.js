@@ -1,6 +1,7 @@
 // TODO: deal with various type of articles
 
 var highlights = new Object();
+var texts = new Object();
 var curNotebook;
 
 //
@@ -66,17 +67,23 @@ function markHighlight(id){
     var highlight = highlights[id];
     var sel = window.getSelection();
     sel.removeAllRanges();
+    var text = [];
 
     for(var i = 0; i < highlight.length; i++){
         var range = genRange(highlight[i]);
         var span = document.createElement('span');
-        span.className = "highlight";
+        span.className = "HWhighlight";
         span.id = "h" + id;
         span.addEventListener('click', removeHighlight);
         range.surroundContents(span);
+
+        text.push(span.innerText);
     }
 
-    console.log("Marked highlight : ", id);
+    texts[id] = text.join("");
+
+    chrome.runtime.sendMessage({ type : 'updateValue', target : 'texts', content : texts})
+    console.log("Marked highlight : ", texts[id]);
 }
 
 function getHighlight(){
@@ -92,11 +99,10 @@ function getHighlight(){
             saveHighlight(sel.getRangeAt(i), id);
         }
 
-        console.log(highlights);
-        chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
-
-        console.log("Highlight sent!");
         markHighlight(id);
+
+        chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
+        console.log("Highlight sent!");
     }
 }
 
@@ -125,10 +131,6 @@ function saveHighlight(sel, id, node, started){
                     tmp.setEnd(nodes[i], nodes[i].length);
                 }
                 highlights[id].push(serialize(tmp));
-                console.log(highlights[id].length);
-                console.log(tmp.startOffset);
-                console.log(tmp.endOffset);
-                console.log("");
 
                 if(end){
                     return false;
@@ -173,7 +175,7 @@ function restoreHighlight(serializedHighlight){
 
 function removeHighlight(e){
     var id = e.target.id;
-    var targets = document.querySelectorAll(".highlight#" + id);
+    var targets = document.querySelectorAll(".HWhighlight#" + id);
 
     for(var i = 0; i < targets.length; i++){
         var target = targets[i];
@@ -187,8 +189,10 @@ function removeHighlight(e){
 
     console.log("before delete : ", highlights);
     delete highlights[Number(id.split("h")[1])];
+    delete texts[Number(id.split("h")[1])];
     console.log("after delete : ", highlights);
     chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
+    chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : texts });
 }
 
 //
@@ -198,7 +202,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
     if(request.type == "getContent")
         sendResponse(document.getElementsByTagName('article')[0].innerText);
 });
-
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
     if(request.type == "getHighlight"){
         console.log("Got highlight : ", request.content);
