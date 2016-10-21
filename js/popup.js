@@ -32,15 +32,22 @@ function showNotebookList(){
     var notebookList = db.objectStoreNames;
 
     for(var i = 0; i < notebookList.length; i++){
-        var a = document.createElement('a');
-        a.className = "mdl-navigation__link notebookName";
-        a.id = notebookList[i].replace(/ /g, "_");
-        a.innerText = notebookList[i];
+        var primary = document.createElement('a');
+        primary.className = "mdl-list__item-primary-content notebookName";
+        primary.id = notebookList[i].replace(/ /g, "_");
+        if(notebookList[i] == curNotebook){
+            primary.innerHTML = "<strong>" + notebookList[i] + "</strong>";
+        }
+        else{
+            primary.innerText = notebookList[i];
+        }
 
-        notebooksDiv.insertAdjacentElement('beforeend', a);
+        var wrapper = document.createElement('div');
+        wrapper.className = "mdl-list__item";
+        wrapper.appendChild(primary);
+
+        notebooksDiv.insertAdjacentElement('beforeend', wrapper);
     }
-
-    boldCurNotebook();
 }
 
 function showNotes(){
@@ -105,6 +112,7 @@ recordButton.addEventListener('click', function(){
 addNotebookButton.addEventListener('click', function(){
     var notebookName = prompt("Please input new notebook's name : ");
     if(notebookName){
+        db.close();
         chrome.runtime.sendMessage({ type : 'newNotebook', content : notebookName }, function(e){
             location.reload();
         });
@@ -115,8 +123,7 @@ notebooksDiv.addEventListener('click', function(e){
     var clicked = e.target.id;
     console.log(clicked);
 
-    if(curNotebook != clicked){
-        boldCurNotebook();
+    if(clicked && curNotebook != clicked){
         curNotebook = clicked;
         chrome.runtime.sendMessage({ type : 'changeNotebook', content : clicked}, function(e){
             location.reload();

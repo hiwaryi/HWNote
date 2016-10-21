@@ -10,6 +10,11 @@
         .mdl-layout__drawer-button > i {
             margin-top : 12px;
         }
+
+        a{
+            color: rgba(0, 0, 0, .54) !important;
+            text-decoration: none;
+        }
     </style>
 </head>
 
@@ -29,11 +34,13 @@
             </div>
         </header>
         <div class="mdl-layout__drawer">
-            <span class="mdl-layout-title">공책 목록</span>
-            <nav class="mdl-navigation notebooks">
-                <button class="mdl-button mdl-js-button mdl-button--fab mdl-button--mini-fab mdl-button--colored">
-                    <i class="material-icons addNotebook">add</i>
-                </button>
+            <nav class="mdl-list notebooks">
+                <div class="mdl-list__item">
+                    <div class="mdl-list__item-primary-content">
+                        <h5>공책 목록</h5>
+                    </div>
+                    <a class="mdl-list__item-secondary-action" href="#"><i class="material-icons addNotebook">add</i></a>
+                </div>
             </nav>
         </div>
         <main class="mdl-layout__content">

@@ -15,27 +15,60 @@ var toDelete;
 //
 // Functions
 //
-
-function boldCurNotebook(){
-    var strong = document.createElement('strong');
-    var target = document.querySelector(".notebookName#" + curNotebook.replace(/ /g, "_"));
-
-    target.innerHTML = "<strong>" + target.innerText + "</strong>";
-}
-
 function showNotebookList(){
     var notebookList = db.objectStoreNames;
 
     for(var i = 0; i < notebookList.length; i++){
-        var a = document.createElement('a');
-        a.className = "mdl-navigation__link notebookName";
-        a.id = notebookList[i].replace(/ /g, "_");
-        a.innerText = notebookList[i];
+        var idx = i;
+        // Title
+        var primary = document.createElement('a');
+        primary.className = "mdl-list__item-primary-content notebookName";
+        primary.id = notebookList[idx].replace(/ /g, "_");
+        if(notebookList[idx] == curNotebook){
+            primary.innerHTML = "<strong>" + notebookList[idx] + "</strong>";
+        }
+        else{
+            primary.innerText = notebookList[idx];
+        }
+        primary.addEventListener('click', function(e){
+            var clicked = e.target.id;
+            console.log(clicked);
 
-        notebooksDiv.insertAdjacentElement('beforeend', a);
+            if(curNotebook != clicked){
+                curNotebook = clicked;
+                chrome.runtime.sendMessage({ type : 'changeNotebook', content : clicked}, function(e){
+                    location.reload();
+                });
+            }
+        });
+
+        // Actions
+        var secondary = document.createElement('div');
+        secondary.className = "mdl-list__item-secondary-action";
+
+        var del_a = document.createElement('a');
+        del_a.setAttribute("href", "#");
+        del_a.addEventListener("click", function(){
+            toDelete = { type: "objstore", target: notebookList[idx] };
+            deleteDialog.querySelector(".mdl-dialog__content").innerText = "이 노트북을 삭제할까요?";
+            deleteDialog.showModal();
+        });
+        var del_icon = document.createElement('i');
+        del_icon.className = "material-icons";
+        del_icon.innerText = "delete";
+
+        del_a.appendChild(del_icon);
+        secondary.appendChild(del_a);
+
+        //wrapper
+        var wrapper = document.createElement('div');
+        wrapper.className = "mdl-list__item";
+        wrapper.appendChild(primary);
+        wrapper.appendChild(secondary);
+
+        // Add to Drawer
+        notebooksDiv.insertAdjacentElement('beforeend', wrapper);
     }
-
-    boldCurNotebook();
 }
 
 function showSearchResultBar(keyword){
@@ -119,7 +152,7 @@ function showNotes(keyword){
 
                 if(!notes[i].highlight){
                     highlight = document.getElementsByClassName('highlight' + notes[i].id)[0];
-                    highlight.outerHTML = "<button disabled" + highlight.outerHTML.substring(7);
+                    highlight.setAttribute("disabled", "");
                 }
                 document.querySelector(".note" + notes[i].id).querySelector('.title').innerHTML = '<a href="' + notes[i].url + '" target="_blank">' + notes[i].title.substring(0, 40) + '</a>';
 
@@ -127,7 +160,7 @@ function showNotes(keyword){
                 for(var j in notes[i].texts){
                     texts.push(notes[i].texts[j]);
                 }
-                document.querySelector(".note" + notes[i].id).querySelector('.contents').innerText = texts.join(" ... ").substring(0, 100);
+                document.querySelector(".note" + notes[i].id).querySelector('.contents').innerText = texts.join(" ... ").substring(0, 300) + "...";
             }
 
             // Event Listeners
@@ -167,10 +200,10 @@ function showNotes(keyword){
                         textsDialog.querySelector(".mdl-dialog__content").innerHTML = "";
 
                         for(var idx in notes[i].texts){
-                            var p = document.createElement('p');
-                            p.innerText = notes[i].texts[idx];
+                            var span = document.createElement('span');
+                            span.innerText = notes[i].texts[idx];
 
-                            textsDialog.querySelector(".mdl-dialog__content").innerHTML += p.outerHTML + "<hr>";
+                            textsDialog.querySelector(".mdl-dialog__content").innerHTML += span.outerHTML + "<hr>";
                         }
 
                         textsDialog.showModal();
@@ -183,7 +216,8 @@ function showNotes(keyword){
                     var del = e.target.parentNode;
                     var id = del.classList[4].split("delete")[1];
 
-                    toDelete = id;
+                    toDelete = { type : "object", target : id };
+                    deleteDialog.querySelector(".mdl-dialog__content").innerText = "이 노트를 삭제할까요?"
                     deleteDialog.showModal();
                 });
             }
@@ -231,10 +265,26 @@ searchBar.addEventListener('keypress', function(e){
     }
 });
 
+addNotebookButton.addEventListener('click', function(e){
+    var notebookName = prompt("새 노트북의 이름을 입력해주세요 : ");
+    if(notebookName){
+        db.close();
+        chrome.runtime.sendMessage({ type : 'newNotebook', content : notebookName }, function(e){
+            location.reload();
+        });
+    }
+});
+
 deleteDialog.querySelector('.ok').addEventListener('click', function(e){
-    chrome.runtime.sendMessage({ type : 'deleteObject', url : toDelete }, function(e){
-        location.reload();
-    });
+    if(db.objectStoreNames.length == 1){
+        alert("노트북은 최소한 1개 이상 존재해야해요!");
+    }
+    else{
+        db.close();
+        chrome.runtime.sendMessage({ type: 'delete', content : toDelete}, function(){
+            location.reload();
+        });
+    }
 });
 
 deleteDialog.querySelector('.cancel').addEventListener('click', function(e){
@@ -244,7 +294,7 @@ deleteDialog.querySelector('.cancel').addEventListener('click', function(e){
 
 textsDialog.querySelector('.close').addEventListener('click', function(e){
     textsDialog.close();
-})
+});
 
 //
 // Init

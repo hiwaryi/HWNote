@@ -142,16 +142,6 @@ function updateValue(target, data, url){
     }
 }
 
-function deleteObject(id){
-    var request = db.transaction([curNotebook], "readwrite").objectStore(curNotebook).delete(Number(id));
-    request.onsuccess = function(e){
-        console.log(e);
-    }
-    request.onerror = function(e){
-        console.log(e);
-    }
-}
-
 chrome.tabs.onRemoved.addListener(function(id){
     if(id in keywords){
         delete keywords[id];
@@ -160,7 +150,7 @@ chrome.tabs.onRemoved.addListener(function(id){
 
 chrome.tabs.onUpdated.addListener(function(id, info, tab){
     if(info.status == "complete"){
-        var index = db.transaction([curNotebook], "readwrite").objectStore(curNotebook).index('url'),
+        var index = db.transaction([curNotebook]).objectStore(curNotebook).index('url'),
             key = IDBKeyRange.only(tab.url);
 
         index.openCursor(key).onsuccess = function(e){
@@ -243,10 +233,32 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
             }
             break;
 
-        case 'deleteObject':
-            console.log("Delete : ", request.url);
+        case 'delete':
+            var toDelete = request.content;
 
-            deleteObject(request.url);
+            if(toDelete.type == "object"){
+                var request = db.transaction([curNotebook], "readwrite").objectStore(curNotebook).delete(Number(toDelete.target));
+                request.onsuccess = function(e){
+                    sendResponse();
+                }
+                request.onerror = function(e){
+                    console.log(e);
+                }
+            }
+            else if(toDelete.type == "objstore"){
+                db.close();
+                req = window.indexedDB.open('HWNote', req.result.version + 1);
+                req.onupgradeneeded = function(e){
+                    db = e.target.result;
+                    db.deleteObjectStore(toDelete.target);
+
+                    if(!db.objectStoreNames.contains(curNotebook)){
+                        curNotebook = db.objectStoreNames[0];
+                    }
+
+                    sendResponse();
+                }
+            }
             break;
     }
 });
