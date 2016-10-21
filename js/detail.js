@@ -121,7 +121,13 @@ function showNotes(keyword){
                     highlight = document.getElementsByClassName('highlight' + notes[i].id)[0];
                     highlight.outerHTML = "<button disabled" + highlight.outerHTML.substring(7);
                 }
-                document.querySelector(".note" + notes[i].id).querySelector('.title').innerHTML = '<a href="' + notes[i].url + '" target="_blank">' + notes[i].title + '</a>';
+                document.querySelector(".note" + notes[i].id).querySelector('.title').innerHTML = '<a href="' + notes[i].url + '" target="_blank">' + notes[i].title.substring(0, 40) + '</a>';
+
+                var texts = [];
+                for(var j in notes[i].texts){
+                    texts.push(notes[i].texts[j]);
+                }
+                document.querySelector(".note" + notes[i].id).querySelector('.contents').innerText = texts.join(" ... ").substring(0, 100);
             }
 
             // Event Listeners
@@ -257,7 +263,7 @@ function init(){
 
             curNotebookSpan.innerText = curNotebook;
 
-            var keyword = location.search.replace("?search=", "");
+            var keyword = decodeURI(location.search.replace("?search=", ""));
             showNotes(keyword);
             showNotebookList();
         });
