@@ -5,7 +5,7 @@
   "version": "1.0",
 
   "permissions": [
-    "tabs", "http://*/", "https://*/", "sessions"
+    "tabs", "sessions", "<all_urls>"
   ],
   "browser_action": {
     "default_icon": "icon.png",

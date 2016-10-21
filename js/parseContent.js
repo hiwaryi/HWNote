@@ -3,6 +3,7 @@
 var highlights = new Object();
 var texts = new Object();
 var curNotebook;
+var recordStat = false;
 
 //
 // Functions
@@ -87,23 +88,27 @@ function markHighlight(id){
 }
 
 function getHighlight(){
-    var sel = window.getSelection();
+    chrome.runtime.sendMessage({ type: "init" }, function(response){
+        if(response.recordStat){
+            var sel = window.getSelection();
 
-    if(sel.type == 'Range'){
-        console.log("User selected something!");
+            if(sel.type == 'Range'){
+                console.log("User selected something!");
 
-        var id = Object.keys(highlights).length ? Number(Object.keys(highlights)[Object.keys(highlights).length - 1]) + 1 : 0;
-        highlights[id] = [];
+                var id = Object.keys(highlights).length ? Number(Object.keys(highlights)[Object.keys(highlights).length - 1]) + 1 : 0;
+                highlights[id] = [];
 
-        for(var i = 0; i < sel.rangeCount; i++){
-            saveHighlight(sel.getRangeAt(i), id);
+                for(var i = 0; i < sel.rangeCount; i++){
+                    saveHighlight(sel.getRangeAt(i), id);
+                }
+
+                markHighlight(id);
+
+                chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
+                console.log("Highlight sent!");
+            }
         }
-
-        markHighlight(id);
-
-        chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
-        console.log("Highlight sent!");
-    }
+    });
 }
 
 function saveHighlight(sel, id, node, started){
@@ -174,25 +179,29 @@ function restoreHighlight(serializedHighlight){
 }
 
 function removeHighlight(e){
-    var id = e.target.id;
-    var targets = document.querySelectorAll(".HWhighlight#" + id);
+    chrome.runtime.sendMessage({ type: "init" }, function(response){
+        if(response.recordStat){
+            var id = e.target.id;
+            var targets = document.querySelectorAll(".HWhighlight#" + id);
 
-    for(var i = 0; i < targets.length; i++){
-        var target = targets[i];
-        var pn = target.parentNode;
+            for(var i = 0; i < targets.length; i++){
+                var target = targets[i];
+                var pn = target.parentNode;
 
-        while(target.firstChild){
-            pn.insertBefore(target.firstChild, target);
+                while(target.firstChild){
+                    pn.insertBefore(target.firstChild, target);
+                }
+                pn.removeChild(target);
+            }
+
+            console.log("before delete : ", highlights);
+            delete highlights[Number(id.split("h")[1])];
+            delete texts[Number(id.split("h")[1])];
+            console.log("after delete : ", highlights);
+            chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
+            chrome.runtime.sendMessage({ type : 'updateValue', target : "texts", content : texts });
         }
-        pn.removeChild(target);
-    }
-
-    console.log("before delete : ", highlights);
-    delete highlights[Number(id.split("h")[1])];
-    delete texts[Number(id.split("h")[1])];
-    console.log("after delete : ", highlights);
-    chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
-    chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : texts });
+    });
 }
 
 //
@@ -207,6 +216,9 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
         console.log("Got highlight : ", request.content);
         restoreHighlight(request.content);
     }
-})
+});
 
-document.addEventListener('mouseup', getHighlight);
+chrome.runtime.sendMessage({ type : "init" }, function(response){
+    recordStat = response.recordStat;
+    document.addEventListener('mouseup', getHighlight);
+});

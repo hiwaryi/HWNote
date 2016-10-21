@@ -276,7 +276,7 @@ addNotebookButton.addEventListener('click', function(e){
 });
 
 deleteDialog.querySelector('.ok').addEventListener('click', function(e){
-    if(db.objectStoreNames.length == 1){
+    if(toDelete.target == "objstore" && db.objectStoreNames.length == 1){
         alert("노트북은 최소한 1개 이상 존재해야해요!");
     }
     else{

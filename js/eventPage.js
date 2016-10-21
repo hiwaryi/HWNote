@@ -76,7 +76,7 @@ function collectData(id, info, tab){
                 }
                 else{
                     chrome.tabs.sendMessage(tab.id, { type : 'getContent' }, function(content){
-                        chrome.tabs.captureVisibleTab(function(thumbnail){
+                        chrome.tabs.captureVisibleTab(tab.windowId, function(thumbnail){
                             var keyword;
                             if(tab.openerTabId in keywords){
                                 keyword = JSON.parse(JSON.stringify(keywords[tab.openerTabId]));
