@@ -56,6 +56,7 @@ function checkExcludedSite(protocol, domain){
 }
 
 function collectData(id, info, tab){
+    console.log(info);
     if(info.status == "complete" && recordStat){
         var domain = tab.url.split('/')[tab.url.indexOf('//') < 0 ? 0 : 2].split(/[\/?:#&]/)[0],
             protocol = tab.url.split("://")[0];
@@ -72,9 +73,6 @@ function collectData(id, info, tab){
                     updateData.time = new Date();
                     updateData.visited++;
                     cursor.update(updateData);
-
-                    // TODO: change position. why is this here???
-                    // chrome.tabs.sendMessage(tab.id, { type : 'getHighlight', content : cursor.value.highlight });
                 }
                 else{
                     chrome.tabs.sendMessage(tab.id, { type : 'getContent' }, function(content){
@@ -170,12 +168,12 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
             console.log("Message Received : setRecordStat");
 
             recordStat = request.content;
-            if(recordStat == true){
-                chrome.tabs.onUpdated.addListener(collectData);
-            }
-            else if(recordStat == false){
-                chrome.tabs.onUpdated.removeListener(collectData);
-            }
+            // if(recordStat == true){
+            //
+            // }
+            // else if(recordStat == false){
+            //     chrome.tabs.onUpdated.removeListener(collectData);
+            // }
             break;
 
         case 'init':
@@ -264,3 +262,5 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
             break;
     }
 });
+
+chrome.tabs.onUpdated.addListener(collectData);

@@ -62,12 +62,14 @@ function showNotes(){
             ul.className = "mdl-list__item";
 
             // title
-            var span = document.createElement('span');
-            span.className = "mdl-list__item-primary-content note";
-            span.id = idx;
-            span.innerHTML = cursor.value.title.replace("&lt;", "<").replace("&gt;", ">");
+            var title = document.createElement('a');
+            title.className = "mdl-list__item-primary-content note";
+            title.id = idx;
+            title.setAttribute("href", cursor.value.url);
+            title.setAttribute("target", "_blank");
+            title.innerHTML = cursor.value.title.replace("&lt;", "<").replace("&gt;", ">");
             if(cursor.value.title.length > 30){
-                span.innerHTML = cursor.value.title.substring(0, 30) + "...";
+                title.innerHTML = cursor.value.title.substring(0, 30) + "...";
             }
 
             // draw star
@@ -89,7 +91,7 @@ function showNotes(){
             });
             a.appendChild(star);
 
-            ul.appendChild(span);
+            ul.appendChild(title);
             ul.appendChild(a);
             notesDiv.insertAdjacentElement('afterbegin', ul);
 

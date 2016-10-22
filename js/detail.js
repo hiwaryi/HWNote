@@ -99,7 +99,7 @@ function showNotes(keyword){
         var cursor = e.target.result;
         idx++;
 
-        if(cursor && (keyword || idx <= 10)){
+        if(cursor && (keyword || idx <= 100)){
             if(keyword){
                 if(cursor.value.title.indexOf(keyword) != -1 ||
                     cursor.value.url.indexOf(keyword) != -1 ||
@@ -143,7 +143,7 @@ function showNotes(keyword){
 
                 // setting contents
                 node.childNodes[0].getElementsByClassName('date')[0].innerHTML = notes[i].time;
-                node.childNodes[0].getElementsByClassName('keyword')[0].innerHTML = notes[i].keyword ? notes[i].keyword : "none";
+                node.childNodes[0].getElementsByClassName('keyword')[0].innerHTML = notes[i].keyword ? decodeURI(notes[i].keyword) : "none";
                 node.childNodes[0].getElementsByClassName('visited')[0].innerHTML = notes[i].visited;
 
 
