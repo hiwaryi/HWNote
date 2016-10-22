@@ -64,11 +64,76 @@ function serialize(range){
     };
 }
 
+function updateSerialization(){
+    var target = document.querySelectorAll(".HWhighlight"),
+        id = 0,
+        prevId;
+
+    highlights = new Object();
+    texts = new Object();
+    highlights[0] = [];
+    var _texts = [];
+
+    for(var val in target){
+        if(target.hasOwnProperty(val)){
+            var curId = target[val].id.split("h")[1];
+            if(prevId && curId != prevId){
+                texts[id] = _texts.join("");
+                id++;
+                highlights[id] = [];
+                _texts = [];
+            }
+
+            target[val].id = "h" + curId;
+
+            var containerQuery = genQuery(target[val].parentNode),
+                text = target[val].innerText,
+                startOffset,
+                endOffset;
+
+            var siblings = target[val].parentNode.childNodes,
+                textIdx = getTextNodeIdx(target[val]);
+
+            // Get startOffset
+            if(textIdx == 0 || siblings[textIdx - 1].nodeType != 3){
+                startOffset = 0;
+            }
+            else{
+                startOffset = siblings[textIdx - 1].length;
+            }
+
+            containerQuery.textIdx = textIdx;
+            if(startOffset){
+                containerQuery.textIdx--;
+            }
+
+            // Get endOffset
+            endOffset = startOffset + siblings[textIdx].innerText.length;
+
+            highlights[id].push({
+                startContainer: containerQuery,
+                endContainer: containerQuery,
+                startOffset: startOffset,
+                endOffset: endOffset
+            });
+            _texts.push(text);
+
+            prevId = curId;
+        }
+    }
+
+    texts[id] = _texts.join("");
+
+    chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
+    chrome.runtime.sendMessage({ type : 'updateValue', target : "texts", content : texts });
+    debugger;
+}
+
 function markHighlight(id){
     var highlight = highlights[id];
     var sel = window.getSelection();
     sel.removeAllRanges();
-    var text = [];
+    // var text = [];
 
     for(var i = 0; i < highlight.length; i++){
         var range = genRange(highlight[i]);
@@ -78,13 +143,12 @@ function markHighlight(id){
         span.addEventListener('click', removeHighlight);
         range.surroundContents(span);
 
-        text.push(span.innerText);
+        // text.push(span.innerText);
     }
 
-    texts[id] = text.join("");
+    // texts[id] = text.join("");
 
-    chrome.runtime.sendMessage({ type : 'updateValue', target : 'texts', content : texts})
-    console.log("Marked highlight : ", texts[id]);
+    // console.log("Marked highlight : ", texts[id]);
 }
 
 function getHighlight(){
@@ -103,9 +167,10 @@ function getHighlight(){
                 }
 
                 markHighlight(id);
+                updateSerialization();
 
-                chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
-                console.log("Highlight sent!");
+                // chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
+                // console.log("Highlight sent!");
             }
         }
     });
@@ -188,18 +253,29 @@ function removeHighlight(e){
                 var target = targets[i];
                 var pn = target.parentNode;
 
-                while(target.firstChild){
-                    pn.insertBefore(target.firstChild, target);
+                // while(target.firstChild){
+                //     pn.insertBefore(target.firstChild, target);
+                // }
+
+                var textIdx = getTextNodeIdx(target);
+                if(textIdx != pn.childNodes.length - 1 && pn.childNodes[textIdx + 1].nodeType == 3){
+                    var after = pn.childNodes[textIdx + 1]
+                    pn.childNodes[textIdx].innerText += after.nodeValue;
+                    pn.removeChild(after);
                 }
-                pn.removeChild(target);
+                if(textIdx != 0 && pn.childNodes[textIdx - 1].nodeType == 3){
+                    var before = pn.childNodes[textIdx - 1];
+                    before.nodeValue += pn.childNodes[textIdx].innerText;
+                    pn.removeChild(pn.childNodes[textIdx]);
+                }
             }
 
-            console.log("before delete : ", highlights);
-            delete highlights[Number(id.split("h")[1])];
-            delete texts[Number(id.split("h")[1])];
-            console.log("after delete : ", highlights);
-            chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
-            chrome.runtime.sendMessage({ type : 'updateValue', target : "texts", content : texts });
+            updateSerialization();
+
+            // delete highlights[Number(id.split("h")[1])];
+            // delete texts[Number(id.split("h")[1])];
+            // chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
+            // chrome.runtime.sendMessage({ type : 'updateValue', target : "texts", content : texts });
         }
     });
 }
