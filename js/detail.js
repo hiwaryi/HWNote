@@ -268,10 +268,22 @@ searchBar.addEventListener('keypress', function(e){
 addNotebookButton.addEventListener('click', function(e){
     var notebookName = prompt("새 노트북의 이름을 입력해주세요 : ");
     if(notebookName){
+        if(notebookName.match(/[-_\/?:#&]/g)){
+            alert('노트북 제목에서 특수문자는 빼주시겠어요..?ㅠㅠ');
+        }
+        else{
+            db.close();
+            chrome.runtime.sendMessage({ type : 'newNotebook', content : notebookName }, function(e){
+                location.reload();
+            });
+        }
+    }
+});
+
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
+    if(request.type == "dbclose"){
+        console.log("dbclose");
         db.close();
-        chrome.runtime.sendMessage({ type : 'newNotebook', content : notebookName }, function(e){
-            location.reload();
-        });
     }
 });
 

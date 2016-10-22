@@ -112,12 +112,17 @@ recordButton.addEventListener('click', function(){
 });
 
 addNotebookButton.addEventListener('click', function(){
-    var notebookName = prompt("Please input new notebook's name : ");
+    var notebookName = prompt("새 노트북의 이름을 입력해주세요 : ");
     if(notebookName){
-        db.close();
-        chrome.runtime.sendMessage({ type : 'newNotebook', content : notebookName }, function(e){
-            location.reload();
-        });
+        if(notebookName.match(/[-_\/?:#&]/g)){
+            alert('노트북 제목에서 특수문자는 빼주시겠어요..?ㅠㅠ');
+        }
+        else{
+            db.close();
+            chrome.runtime.sendMessage({ type : 'newNotebook', content : notebookName }, function(e){
+                location.reload();
+            });
+        }
     }
 });
 
@@ -135,6 +140,13 @@ notebooksDiv.addEventListener('click', function(e){
 
 detailDiv.addEventListener('click', function(e){
     chrome.tabs.create({ 'url' : chrome.extension.getURL('detail.html')});
+});
+
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
+    if(request.type == "dbclose"){
+        db.close();
+        console.log("dbclose");
+    }
 });
 
 

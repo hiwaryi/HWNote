@@ -184,6 +184,8 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
         case 'newNotebook':
             console.log("New notebook! : ", request.content);
 
+            chrome.runtime.sendMessage({ type: "dbclose" });
+
             curNotebook = request.content;
 
             db.close();
