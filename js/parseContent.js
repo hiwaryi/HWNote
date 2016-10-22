@@ -25,6 +25,7 @@ function getNth(node){
 
 function getTextNodeIdx(node){
     var nodes = node.parentNode.childNodes;
+
     for(var i = 0; i < nodes.length; i++){
         if(nodes[i] === node){
             return i;
@@ -67,20 +68,25 @@ function serialize(range){
 function updateSerialization(){
     var target = document.querySelectorAll(".HWhighlight"),
         id = 0,
-        prevId;
+        prevId,
+        idx = Object.keys(target).reverse();
 
     highlights = new Object();
     texts = new Object();
     highlights[0] = [];
+    texts[0] = [];
     var _texts = [];
 
-    for(var val in target){
+    for(var i = 0; i < idx.length; i++){
+        var val = idx[i];
+
         if(target.hasOwnProperty(val)){
             var curId = target[val].id.split("h")[1];
             if(prevId && curId != prevId){
-                texts[id] = _texts.join("");
+                texts[id] = _texts.reverse().join("");
                 id++;
                 highlights[id] = [];
+                texts[id] = [];
                 _texts = [];
             }
 
@@ -122,18 +128,23 @@ function updateSerialization(){
         }
     }
 
-    texts[id] = _texts.join("");
+    texts[id] = _texts.reverse().join("");
 
     chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
     chrome.runtime.sendMessage({ type : 'updateValue', target : "texts", content : texts });
-    debugger;
 }
 
-function markHighlight(id){
+function markHighlight(id, reverse = false){
     var highlight = highlights[id];
     var sel = window.getSelection();
     sel.removeAllRanges();
     // var text = [];
+
+    debugger;
+
+    if(reverse){
+        highlight.reverse();
+    }
 
     for(var i = 0; i < highlight.length; i++){
         var range = genRange(highlight[i]);
@@ -142,6 +153,17 @@ function markHighlight(id){
         span.id = "h" + id;
         span.addEventListener('click', removeHighlight);
         range.surroundContents(span);
+
+        var textIdx = getTextNodeIdx(span),
+            pn = span.parentNode,
+            siblings = span.parentNode.childNodes;
+        if(textIdx != 0 && siblings[textIdx - 1].nodeType == 3 && siblings[textIdx - 1].nodeValue == ""){
+            pn.removeChild(siblings[textIdx - 1]);
+            textIdx--;
+        }
+        if(textIdx < siblings.length - 1 && siblings[textIdx + 1].nodeType == 3 && siblings[textIdx + 1].nodeValue == ""){
+            pn.removeChild(siblings[textIdx + 1]);
+        }
 
         // text.push(span.innerText);
     }
@@ -166,7 +188,7 @@ function getHighlight(){
                     saveHighlight(sel.getRangeAt(i), id);
                 }
 
-                markHighlight(id);
+                markHighlight(id, true);
                 updateSerialization();
 
                 // chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
@@ -180,8 +202,6 @@ function saveHighlight(sel, id, node, started){
     node = node || document.body;
     started = started || false;
     var nodes = node.childNodes;
-
-    // debugger;
 
     for(var i = 0; i < nodes.length; i++){
         if(nodes[i].nodeType == 3){
@@ -201,6 +221,7 @@ function saveHighlight(sel, id, node, started){
                     tmp.setEnd(nodes[i], nodes[i].length);
                 }
                 highlights[id].push(serialize(tmp));
+                // markHighlight(id, highlights[id].length - 1, highlights[id].length);
 
                 if(end){
                     return false;
@@ -238,7 +259,7 @@ function restoreHighlight(serializedHighlight){
 
     for(var key in highlights){
         if(key){
-            markHighlight(key);
+            markHighlight(key, true);
         }
     }
 }
@@ -268,6 +289,9 @@ function removeHighlight(e){
                     before.nodeValue += pn.childNodes[textIdx].innerText;
                     pn.removeChild(pn.childNodes[textIdx]);
                 }
+                else{
+                    target.outerHTML = target.innerHTML;
+                }
             }
 
             updateSerialization();
@@ -275,7 +299,7 @@ function removeHighlight(e){
             // delete highlights[Number(id.split("h")[1])];
             // delete texts[Number(id.split("h")[1])];
             // chrome.runtime.sendMessage({ type : 'updateValue', target : "highlight", content : JSON.stringify(highlights)});
-            // chrome.runtime.sendMessage({ type : 'updateValue', target : "texts", content : texts });
+            chrome.runtime.sendMessage({ type : 'updateValue', target : "texts", content : texts });
         }
     });
 }
@@ -290,7 +314,9 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
     if(request.type == "getHighlight"){
         console.log("Got highlight : ", request.content);
-        restoreHighlight(request.content);
+        if(request.content){
+            restoreHighlight(request.content);
+        }
     }
 });
 

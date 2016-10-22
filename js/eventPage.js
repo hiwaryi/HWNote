@@ -48,17 +48,19 @@ function checkSearchEngine(url, domain){
     return null;
 }
 
-function checkExcludedSite(domain){
+function checkExcludedSite(protocol, domain){
     var excludedSite = new Set(["www.daum.net", "www.naver.com", "www.google.co.kr"]);
 
+    if(protocol != "http" && protocol != "https") return true;
     return excludedSite.has(domain);
 }
 
 function collectData(id, info, tab){
     if(info.status == "complete" && recordStat){
-        var domain = tab.url.split('/')[tab.url.indexOf('//') < 0 ? 0 : 2].split(/[\/?:#&]/)[0];
+        var domain = tab.url.split('/')[tab.url.indexOf('//') < 0 ? 0 : 2].split(/[\/?:#&]/)[0],
+            protocol = tab.url.split("://")[0];
 
-        if(!checkExcludedSite(domain)){
+        if(!checkExcludedSite(protocol, domain)){
             var index = db.transaction([curNotebook], "readwrite").objectStore(curNotebook).index('url'),
                 key = IDBKeyRange.only(tab.url);
 
