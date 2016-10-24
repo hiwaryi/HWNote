@@ -168,6 +168,13 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
             console.log("Message Received : setRecordStat");
 
             recordStat = request.content;
+
+            if(recordStat){
+                chrome.browserAction.setIcon({ path : chrome.extension.getURL('icon_enabled.png') });
+            }
+            else{
+                chrome.browserAction.setIcon({ path: chrome.extension.getURL('icon.png') });
+            }
             break;
 
         case 'init':
