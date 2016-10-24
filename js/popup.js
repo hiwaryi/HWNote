@@ -93,7 +93,7 @@ function showNotes(){
 
             ul.appendChild(title);
             ul.appendChild(a);
-            notesDiv.insertAdjacentElement('afterbegin', ul);
+            notesDiv.insertAdjacentElement('beforebegin', ul);
 
             cursor.continue();
         }
@@ -132,7 +132,7 @@ notebooksDiv.addEventListener('click', function(e){
 
     if(clicked && curNotebook != clicked){
         curNotebook = clicked;
-        chrome.runtime.sendMessage({ type : 'changeNotebook', content : clicked}, function(e){
+        chrome.runtime.sendMessage({ type : 'changeNotebook', content : clicked.replace(/_/g, " ")}, function(e){
             location.reload();
         });
     }

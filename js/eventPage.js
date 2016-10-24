@@ -168,12 +168,6 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
             console.log("Message Received : setRecordStat");
 
             recordStat = request.content;
-            // if(recordStat == true){
-            //
-            // }
-            // else if(recordStat == false){
-            //     chrome.tabs.onUpdated.removeListener(collectData);
-            // }
             break;
 
         case 'init':
@@ -228,7 +222,7 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse){
             break;
 
         case 'updateValue':
-            if(recordStat){
+            if(recordStat || request.target == "favorite"){
                 console.log("Update ", request.target, " : ", request.content);
 
                 updateValue(request.target, request.content, request.url ? request.url : sender.tab.url);

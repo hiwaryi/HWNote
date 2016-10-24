@@ -22,12 +22,9 @@
             margin-top: 30px !important;
         }
 
-        .bottom{
-            font-size: 12px;
-            text-align: right;
-        }
-        h4, h6{
+        h6{
             display: inline-block;
+            margin: 0 !important;
         }
 
         .title, .date{
@@ -51,6 +48,11 @@
             text-decoration: none;
         }
 
+        .showThumbnail{
+            width: 80% !important;
+            height: 80% !important;
+        }
+
         .showTexts{
             width: 720px !important;
             line-height : 50px !important;
@@ -71,8 +73,18 @@
             color: black;
         }
 
-        .showTexts::backdrop{
+        .showTexts::backdrop, .showThumbnail::backdrop{
             background-color : black;
+        }
+
+        .showThumbnail > .mdl-dialog__content {
+            text-align: center;
+        }
+        .showThumbnail > .mdl-dialog__content > img{
+            display: block;
+            height: 80%;
+            margin-left: auto;
+            margin-right: auto;
         }
 
     </style>
@@ -88,6 +100,16 @@
     </dialog>
 
     <dialog class="mdl-dialog showTexts">
+        <div class="mdl-dialog__title">
+        </div>
+        <div class="mdl-dialog__content">
+        </div>
+        <div class="mdl-dialog__actions">
+            <button type="button" class="mdl-button close">닫기</button>
+        </div>
+    </dialog>
+
+    <dialog class="mdl-dialog showThumbnail">
         <div class="mdl-dialog__title">
         </div>
         <div class="mdl-dialog__content">

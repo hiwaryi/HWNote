@@ -7,6 +7,7 @@ var pageContentDiv = document.getElementsByClassName('page-content')[0];
 var styleTag = document.getElementsByTagName('style')[0];
 var deleteDialog = document.getElementsByClassName('deleteConfirm')[0];
 var textsDialog = document.getElementsByClassName('showTexts')[0];
+var showThumbnailDialog = document.getElementsByClassName('showThumbnail')[0];
 var db;
 var curNotebook;
 var req;
@@ -36,7 +37,7 @@ function showNotebookList(){
 
             if(curNotebook != clicked){
                 curNotebook = clicked;
-                chrome.runtime.sendMessage({ type : 'changeNotebook', content : clicked}, function(e){
+                chrome.runtime.sendMessage({ type : 'changeNotebook', content : clicked.replace(/_/g, " ") }, function(e){
                     location.reload();
                 });
             }
@@ -115,7 +116,7 @@ function showNotes(keyword){
         }
         else{
             for(var i = 0; i < notes.length; i++){
-                var html = '<div class="mdl-grid"> <div class="mdl-cell mdl-cell--10-col mdl-cell--1-offset mdl-shadow--2dp"> <div class="mdl-grid mdl-grid--no-spacing"> <div class="mdl-cell mdl-cell--3-col thumbnail"> </div> <div class="mdl-cell mdl-cell--9-col"> <div class="mdl-card mdl-cell--12-col"> <div class="mdl-card__supporting-text"> <h4 class="title">Title</h4> <h6 class="date">2016-10-19 09:12</h6><br/> <div class="contents">Dolore ex deserunt aute ugiat aute nulla ea sunt aliqua nisi cupidatat eu. Nostrud in laboris labore nisi amet do dolor eu fugiat consectetur elit cillum esse. Pariatur occaecat nisi laboris tempor laboris eiusmod qui id Lorem esse commodo in. Exercitation aute dolore deserunt culpa consequat elit labore incididunt elit anim.</div> </div> <div class="mdl-card__menu"> <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"> <i class="material-icons favorite">star_border</i> </button> <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect highlight"> <i class="material-icons">highlight</i> </button> <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect delete"> <i class="material-icons">delete</i> </button> </div> <div class="bottom"> Keyword : <span class="keyword"></span> | visited : <span class="visited"></span> </div> </div> </div> </div> </div> </div>'
+                var html = '<div class="mdl-grid"> <div class="mdl-cell mdl-cell--10-col mdl-cell--1-offset mdl-shadow--2dp"> <div class="mdl-grid mdl-grid--no-spacing"> <div class="mdl-cell mdl-cell--3-col thumbnail"> </div> <div class="mdl-cell mdl-cell--9-col"> <div class="mdl-card mdl-cell--12-col"> <div class="mdl-card__supporting-text"> <h4 class="title">Title</h4><strong> <h6 class="date">2016-10-19 09:12</h6></strong> <h6> | <strong>검색어</strong> : <span class="keyword"></span></h6> <h6> | <strong>방문</strong> : <span class="visited"></span></h6><br/><br/> <div class="contents">Dolore ex deserunt aute ugiat aute nulla ea sunt aliqua nisi cupidatat eu. Nostrud in laboris labore nisi amet do dolor eu fugiat consectetur elit cillum esse. Pariatur occaecat nisi laboris tempor laboris eiusmod qui id Lorem esse commodo in. Exercitation aute dolore deserunt culpa consequat elit labore incididunt elit anim.</div> </div> <div class="mdl-card__menu"> <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect"> <i class="material-icons favorite">star_border</i> </button> <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect highlight"> <i class="material-icons">highlight</i> </button> <button class="mdl-button mdl-button--icon mdl-js-button mdl-js-ripple-effect delete"> <i class="material-icons">delete</i> </button> </div> </div> </div> </div> </div> </div>'
                 var node = (new DOMParser()).parseFromString(html, "application/xml");
 
                 // naming card and thumbnail
@@ -125,7 +126,7 @@ function showNotes(keyword){
                 thumbnail.className += notes[i].id;
 
                 // definition of thumbnail
-                var styleDef = document.createTextNode(".thumbnail" + notes[i].id + "{ width:100%; position:relative; background:url(" + notes[i].thumbnail + ")no-repeat; background-size:cover; background-position:center}");
+                var styleDef = document.createTextNode(".thumbnail" + notes[i].id + "{ cursor: pointer; width:100%; position:relative; background:url(" + notes[i].thumbnail + ")no-repeat; background-size:cover; background-position:center}");
                 styleTag.appendChild(styleDef);
 
                 // favorite
@@ -142,8 +143,13 @@ function showNotes(keyword){
                 del.className += notes[i].id;
 
                 // setting contents
-                node.childNodes[0].getElementsByClassName('date')[0].innerHTML = notes[i].time;
-                node.childNodes[0].getElementsByClassName('keyword')[0].innerHTML = notes[i].keyword ? decodeURI(notes[i].keyword) : "none";
+                var time = notes[i].time;
+                node.childNodes[0].getElementsByClassName('date')[0].innerHTML = time.getFullYear() + "-" +
+                                                                                ("0" + (time.getMonth() + 1)).slice(-2) + "-" +
+                                                                                ("0" + time.getDate()).slice(-2) + " " +
+                                                                                ("0" + time.getHours()).slice(-2) + ":" +
+                                                                                ("0" + time.getMinutes()).slice(-2);
+                node.childNodes[0].getElementsByClassName('keyword')[0].innerHTML = notes[i].keyword ? decodeURI(notes[i].keyword[0]) : "없음";
                 node.childNodes[0].getElementsByClassName('visited')[0].innerHTML = notes[i].visited;
 
 
@@ -160,11 +166,24 @@ function showNotes(keyword){
                 for(var j in notes[i].texts){
                     texts.push(notes[i].texts[j]);
                 }
-                document.querySelector(".note" + notes[i].id).querySelector('.contents').innerText = texts.join(" ... ").substring(0, 300) + "...";
+                document.querySelector(".note" + notes[i].id).querySelector('.contents').innerText = texts.join(" ... ").substring(0, 500);
             }
 
             // Event Listeners
             for(var i = 0; i < notes.length; i++){
+                // thumbnail
+                var thumbnail = document.getElementsByClassName('thumbnail' + notes[i].id)[0];
+                thumbnail.addEventListener('click', function(e){
+                    var target = e.target,
+                        content = showThumbnailDialog.querySelector(".mdl-dialog__content"),
+                        thumbnail = new Image();
+
+                    thumbnail.setAttribute('src', window.getComputedStyle(target).backgroundImage.slice(5, -2));
+                    content.innerHTML = "";
+                    content.appendChild(thumbnail);
+                    showThumbnailDialog.showModal();
+                });
+
                 // favorite
                 var favorite = document.getElementsByClassName('favorite' + notes[i].id)[0];
                 favorite.parentNode.addEventListener('click', function(e){
@@ -307,6 +326,10 @@ deleteDialog.querySelector('.cancel').addEventListener('click', function(e){
 textsDialog.querySelector('.close').addEventListener('click', function(e){
     textsDialog.close();
 });
+
+showThumbnailDialog.querySelector('.close').addEventListener('click', function(e){
+    showThumbnailDialog.close();
+})
 
 //
 // Init
